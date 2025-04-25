@@ -1,0 +1,64 @@
+import './bootstrap';
+
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('mapHandler', () => ({
+        map: null,
+        boundaryLayer: null,
+
+        initMap(el) {
+            console.log('Initializing map...');
+            this.map = el._map;
+            console.log('Map instance:', this.map);
+
+            Livewire.hook('message.processed', (message) => {
+                console.log('Livewire message processed');
+                const boundaries = message.component.get('boundaries');
+                console.log('Current boundaries:', boundaries);
+                if (boundaries) {
+                    console.log('Updating boundaries...');
+                    this.updateBoundaries(boundaries);
+                }
+            });
+        },
+
+        updateBoundaries(geojson) {
+            console.log('Attempting to update boundaries with:', geojson);
+
+            try {
+                // Remove existing layer
+                if (this.boundaryLayer) {
+                    console.log('Removing existing boundary layer');
+                    this.map.removeLayer(this.boundaryLayer);
+                }
+
+                // Parse and validate GeoJSON
+                const parsed = JSON.parse(geojson);
+                console.log('Parsed GeoJSON:', parsed);
+
+                if (!parsed || !parsed.type) {
+                    console.error('Invalid GeoJSON format');
+                    return;
+                }
+
+                // Add new layer
+                console.log('Creating new boundary layer');
+                this.boundaryLayer = L.geoJSON(parsed, {
+                    style: {
+                        color: '#3b82f6',
+                        weight: 2,
+                        opacity: 0.7,
+                        fillOpacity: 0.1
+                    }
+                }).addTo(this.map);
+
+                // Fit map to boundary bounds
+                console.log('Fitting map to boundaries');
+                this.map.fitBounds(this.boundaryLayer.getBounds());
+
+            } catch (error) {
+                console.error('Error updating boundaries:', error);
+            }
+        }
+    }));
+});

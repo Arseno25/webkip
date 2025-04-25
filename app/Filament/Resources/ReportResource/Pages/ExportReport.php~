@@ -1,0 +1,170 @@
+<?php
+
+namespace App\Filament\Resources\ReportResource\Pages;
+
+use App\Filament\Resources\ReportResource;
+use Filament\Resources\Pages\Page;
+use App\Models\KipRecipient;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Form;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+class ExportReport extends Page implements HasForms
+{
+    use InteractsWithForms;
+
+    protected static string $resource = ReportResource::class;
+
+    protected static string $view = 'filament.resources.report-resource.pages.export-report';
+
+    protected static ?string $title = 'Export Data';
+
+    public $selectedSubdistrict = null;
+    public $selectedSchool = null;
+    public $selectedLevel = null;
+    public $selectedYear = null;
+    public $selectedGender = null;
+
+    public function mount(): void
+    {
+        $this->form->fill();
+    }
+
+    public function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Select::make('selectedSubdistrict')
+                    ->label('Kecamatan')
+                    ->options(function() {
+                        return \App\Models\Subdistrict::pluck('name', 'id');
+                    })
+                    ->placeholder('Semua Kecamatan'),
+
+                Select::make('selectedSchool')
+                    ->label('Sekolah')
+                    ->options(function() {
+                        return \App\Models\School::pluck('name', 'id');
+                    })
+                    ->placeholder('Semua Sekolah'),
+
+                Select::make('selectedLevel')
+                    ->label('Jenjang')
+                    ->options([
+                        'SD' => 'SD',
+                        'SMP' => 'SMP',
+                        'SMA' => 'SMA',
+                        'SMK' => 'SMK',
+                    ])
+                    ->placeholder('Semua Jenjang'),
+
+                Select::make('selectedYear')
+                    ->label('Tahun Penerimaan')
+                    ->options(function() {
+                        return KipRecipient::select('year_received')
+                            ->distinct()
+                            ->orderBy('year_received')
+                            ->pluck('year_received', 'year_received')
+                            ->toArray();
+                    })
+                    ->placeholder('Semua Tahun'),
+
+                Select::make('selectedGender')
+                    ->label('Jenis Kelamin')
+                    ->options([
+                        'L' => 'Laki-laki',
+                        'P' => 'Perempuan',
+                    ])
+                    ->placeholder('Semua Jenis Kelamin'),
+            ])
+            ->columns(3);
+    }
+
+    public function export()
+    {
+        // Query untuk mendapatkan data KIP recipients berdasarkan filter
+        $query = KipRecipient::query()
+            ->with(['school', 'subdistrict']);
+
+        if ($this->selectedSubdistrict) {
+            $query->where('subdistrict_id', $this->selectedSubdistrict);
+        }
+
+        if ($this->selectedSchool) {
+            $query->where('school_id', $this->selectedSchool);
+        }
+
+        if ($this->selectedYear) {
+            $query->where('year_received', $this->selectedYear);
+        }
+
+        if ($this->selectedGender) {
+            $query->where('gender', $this->selectedGender);
+        }
+
+        if ($this->selectedLevel) {
+            $query->whereHas('school', function ($q) {
+                $q->where('level', $this->selectedLevel);
+            });
+        }
+
+        $kipRecipients = $query->get();
+
+        // Buat spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set header
+        $sheet->setCellValue('A1', 'No');
+        $sheet->setCellValue('B1', 'Nama');
+        $sheet->setCellValue('C1', 'Jenis Kelamin');
+        $sheet->setCellValue('D1', 'Kelas');
+        $sheet->setCellValue('E1', 'Nomor KIP');
+        $sheet->setCellValue('F1', 'Tahun Penerimaan');
+        $sheet->setCellValue('G1', 'Sekolah');
+        $sheet->setCellValue('H1', 'Jenjang');
+        $sheet->setCellValue('I1', 'Kecamatan');
+        $sheet->setCellValue('J1', 'Alamat');
+        $sheet->setCellValue('K1', 'Latitude');
+        $sheet->setCellValue('L1', 'Longitude');
+
+        // Isi data
+        $row = 2;
+        foreach ($kipRecipients as $index => $recipient) {
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, $recipient->name);
+            $sheet->setCellValue('C' . $row, $recipient->gender === 'L' ? 'Laki-laki' : 'Perempuan');
+            $sheet->setCellValue('D' . $row, $recipient->grade);
+            $sheet->setCellValue('E' . $row, $recipient->kip_number);
+            $sheet->setCellValue('F' . $row, $recipient->year_received);
+            $sheet->setCellValue('G' . $row, $recipient->school ? $recipient->school->name : '-');
+            $sheet->setCellValue('H' . $row, $recipient->school ? $recipient->school->level : '-');
+            $sheet->setCellValue('I' . $row, $recipient->subdistrict ? $recipient->subdistrict->name : '-');
+            $sheet->setCellValue('J' . $row, $recipient->address);
+//            $sheet->setCellValue('K' . $row, $recipient->latitude);
+//            $sheet->setCellValue('L' . $row, $recipient->longitude);
+            $row++;
+        }
+
+        // Auto-size kolom
+        foreach (range('A', 'L') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Simpan file
+        $filename = 'laporan_penerima_kip_' . date('Y-m-d_H-i-s') . '.xlsx';
+        $path = storage_path('app/public/' . $filename);
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($path);
+
+        // Download file
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
+    }
+}

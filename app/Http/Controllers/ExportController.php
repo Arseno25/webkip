@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\KipRecipient;
+use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+class ExportController extends Controller
+{
+    public function exportKipRecipients(Request $request)
+    {
+        // Query untuk mendapatkan data KIP recipients berdasarkan filter
+        $query = KipRecipient::query()
+            ->with(['school', 'subdistrict']);
+
+        if ($request->has('subdistrict_id')) {
+            $query->where('subdistrict_id', $request->subdistrict_id);
+        }
+
+        if ($request->has('school_id')) {
+            $query->where('school_id', $request->school_id);
+        }
+
+        if ($request->has('year_received')) {
+            $query->where('year_received', $request->year_received);
+        }
+
+        if ($request->has('gender')) {
+            $query->where('gender', $request->gender);
+        }
+
+        if ($request->has('level')) {
+            $query->whereHas('school', function ($q) use ($request) {
+                $q->where('level', $request->level);
+            });
+        }
+
+        $kipRecipients = $query->get();
+
+        // Buat spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set header
+        $sheet->setCellValue('A1', 'No');
+        $sheet->setCellValue('B1', 'Nama');
+        $sheet->setCellValue('C1', 'Jenis Kelamin');
+        $sheet->setCellValue('D1', 'Kelas');
+        $sheet->setCellValue('E1', 'Nomor KIP');
+        $sheet->setCellValue('F1', 'Tahun Penerimaan');
+        $sheet->setCellValue('G1', 'Sekolah');
+        $sheet->setCellValue('H1', 'Jenjang');
+        $sheet->setCellValue('I1', 'Kecamatan');
+        $sheet->setCellValue('J1', 'Alamat');
+//        $sheet->setCellValue('K1', 'Latitude');
+//        $sheet->setCellValue('L1', 'Longitude');
+
+        // Isi data
+        $row = 2;
+        foreach ($kipRecipients as $index => $recipient) {
+            $sheet->setCellValue('A' . $row, $index + 1);
+            $sheet->setCellValue('B' . $row, $recipient->name);
+            $sheet->setCellValue('C' . $row, $recipient->gender === 'L' ? 'Laki-laki' : 'Perempuan');
+            $sheet->setCellValue('D' . $row, $recipient->grade);
+            $sheet->setCellValue('E' . $row, $recipient->kip_number);
+            $sheet->setCellValue('F' . $row, $recipient->year_received);
+            $sheet->setCellValue('G' . $row, $recipient->school ? $recipient->school->name : '-');
+            $sheet->setCellValue('H' . $row, $recipient->school ? $recipient->school->level : '-');
+            $sheet->setCellValue('I' . $row, $recipient->subdistrict ? $recipient->subdistrict->name : '-');
+            $sheet->setCellValue('J' . $row, $recipient->address);
+//            $sheet->setCellValue('K' . $row, $recipient->latitude);
+//            $sheet->setCellValue('L' . $row, $recipient->longitude);
+            $row++;
+        }
+
+        // Auto-size kolom
+        foreach (range('A', 'L') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Simpan file
+        $filename = 'laporan_penerima_kip_' . date('Y-m-d_H-i-s') . '.xlsx';
+        $path = storage_path('app/public/' . $filename);
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($path);
+
+        // Download file
+        return response()->download($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
+    }
+}
