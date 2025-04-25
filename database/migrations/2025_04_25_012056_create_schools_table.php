@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('principal_name')->nullable();
             $table->enum('level', ['SD', 'SMP', 'SMA', 'SMK'])->comment('School level');
-            $table->foreignId('subdistrict_id')->constrained()->onDelete('cascade');
+            $table->foreignId('subdistrict_id')->constrained('subdistricts')->onDelete('cascade');
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->timestamps();
