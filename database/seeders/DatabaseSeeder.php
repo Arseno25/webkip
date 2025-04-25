@@ -18,11 +18,7 @@ class DatabaseSeeder extends Seeder
 
         User::factory()->create([
             'name' => 'Admin',
-            'email' => 'admin@mail.com',
-        ]);
-        
-        $this->call([
-            SubdistrictSeeder::class,
+            'email' => 'admin@gmail.com',
         ]);
     }
 }
