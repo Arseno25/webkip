@@ -79,8 +79,8 @@ class SubdistrictResource extends Resource
                             ->showZoomControl(true)
 
                             // Location Features
-                            ->liveLocation(true, true, 5000)
-                            ->showMyLocationButton(true)
+//                            ->liveLocation(true, true, 5000)
+//                            ->showMyLocationButton(true)
 
                             // GeoMan Integration
                             ->geoMan(true)

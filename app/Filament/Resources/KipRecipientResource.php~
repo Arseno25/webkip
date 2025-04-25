@@ -23,7 +23,7 @@ class KipRecipientResource extends Resource
 
     protected static ?string $navigationLabel = 'Penerima KIP';
 
-    protected static ?string $navigationGroup = 'Masta Data';
+    protected static ?string $navigationGroup = 'Master Data';
 
     protected static ?string $modelLabel = 'Penerima KIP';
 
@@ -137,11 +137,9 @@ class KipRecipientResource extends Resource
 
                             // State Management
                             ->afterStateUpdated(function (Set $set, ?array $state): void {
-                                if ($state) {
-                                    if (isset($state['lat']) && isset($state['lng'])) {
-                                        $set('latitude', $state['lat']);
-                                        $set('longitude', $state['lng']);
-                                    }
+                                if ($state && isset($state['lat']) && isset($state['lng'])) {
+                                    $set('latitude', (float) $state['lat']);
+                                    $set('longitude', (float) $state['lng']);
                                 }
                             })
                             ->afterStateHydrated(function ($state, $record, Set $set): void {
@@ -158,14 +156,14 @@ class KipRecipientResource extends Resource
                             ->numeric()
                             ->maxValue(90)
                             ->minValue(-90)
-                            ->hidden(),
+                            ->readOnly(),
 
                         Forms\Components\TextInput::make('longitude')
                             ->label('Longitude')
                             ->numeric()
                             ->maxValue(180)
                             ->minValue(-180)
-                            ->hidden(),
+                            ->readOnly(),
                     ]),
             ]);
     }
@@ -258,6 +256,16 @@ class KipRecipientResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('viewMap')
+                ->label('Lihat Peta')
+                ->icon('heroicon-o-map')
+                ->url(fn () => route('filament.admin.resources.reports.map')),
+        ];
     }
 
     public static function getRelations(): array

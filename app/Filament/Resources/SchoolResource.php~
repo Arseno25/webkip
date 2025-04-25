@@ -92,7 +92,7 @@ class SchoolResource extends Resource
                             ->reactive()
                             ->columnSpanFull()
                             // Basic Configuration
-                            ->tilesUrl("https://tile.openstreetmap.de/{z}/{x}/{y}.png")
+                            ->tilesUrl("https://tile.openstreetmap.org/{z}/{x}/{y}.png")
                             ->defaultLocation(latitude: -9.7318891, longitude: 120.0912804) // Default location
                             ->draggable(true)
                             ->clickable(true)
