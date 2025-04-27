@@ -2,8 +2,8 @@
 <x-filament::page>
     <div class="space-y-6">
         @if(!empty($dataWithCluster))
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+            <div class="overflow-x-auto" style="background: transparent;">
+                <table class="w-full divide-y">
                     <thead>
                         <tr>
                             @foreach($header as $h)
