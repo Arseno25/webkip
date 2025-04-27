@@ -29,7 +29,7 @@
             <div class="mt-8">
                 <h3 class="font-bold mb-2">Data Mentah dari Excel/CSV</h3>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 mb-6">
+                    <table class="w-full divide-y divide-gray-200 mb-6">
                         <thead>
                             <tr>
                                 @foreach($header as $h)
@@ -55,7 +55,7 @@
             <div class="mt-8">
                 <h3 class="font-bold mb-2">Data Setelah Normalisasi (Min-Max)</h3>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="w-full divide-y divide-gray-200">
                         <thead>
                             <tr>
                                 @foreach($header as $h)
