@@ -37,11 +37,17 @@
                     reader.onload = function(e) {
                         try {
                             const geojson = JSON.parse(e.target.result);
+                            // Clear existing GeoJSON layers
+                            map.eachLayer(function(layer) {
+                                if (layer instanceof L.GeoJSON) {
+                                    map.removeLayer(layer);
+                                }
+                            });
                             const layer = L.geoJSON(geojson, {
                                 onEachFeature: function(feature, layer) {
                                     if (feature.properties) {
                                         let popupContent = '<div style="max-width: 300px; max-height: 200px; overflow: auto;">';
-                                        const excludedProps = ['OBJECTID', 'AREA', 'PERIMETER', 'KODE_UNSUR'];
+                                        const excludedProps = ['OBJECTID', 'AREA', 'PERIMETER', 'KODE_UNSUR', 'Id'];
                                         for (const key in feature.properties) {
                                             if (!excludedProps.includes(key)) {
                                                 popupContent += `<strong>${key}:</strong> ${feature.properties[key]}<br>`;
