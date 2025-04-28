@@ -1,6 +1,9 @@
 <x-filament-panels::page>
     <div class="w-full h-full">
-        <input type="file" id="geojson-file" accept=".geojson" class="mb-5 p-2 border rounded">
+        <div class="mb-5 flex flex-col">
+            <label>Upload File GeoJSON</label>
+            <input type="file" id="geojson-file" accept=".geojson" class="p-2 border rounded">
+        </div>
         <div id="map" class="w-full h-[600px] rounded-lg border border-gray-300"></div>
     </div>
 
@@ -34,7 +37,21 @@
                     reader.onload = function(e) {
                         try {
                             const geojson = JSON.parse(e.target.result);
-                            const layer = L.geoJSON(geojson).addTo(map);
+                            const layer = L.geoJSON(geojson, {
+                                onEachFeature: function(feature, layer) {
+                                    if (feature.properties) {
+                                        let popupContent = '<div style="max-width: 300px; max-height: 200px; overflow: auto;">';
+                                        const excludedProps = ['OBJECTID', 'AREA', 'PERIMETER', 'KODE_UNSUR'];
+                                        for (const key in feature.properties) {
+                                            if (!excludedProps.includes(key)) {
+                                                popupContent += `<strong>${key}:</strong> ${feature.properties[key]}<br>`;
+                                            }
+                                        }
+                                        popupContent += '</div>';
+                                        layer.bindPopup(popupContent);
+                                    }
+                                }
+                            }).addTo(map);
                             map.fitBounds(layer.getBounds());
                         } catch (error) {
                             console.error('Error parsing GeoJSON:', error);
