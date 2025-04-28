@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Filament\Clusters\KMeans\Pages;
+
+use App\Filament\Clusters\KMeans;
+use Filament\Pages\Page;
+
+class KMeansMap extends Page
+{
+    protected static ?string $navigationIcon = 'heroicon-o-map';
+
+    protected static string $view = 'filament.clusters.kmeans.pages.kmeans-map';
+
+    protected static ?string $navigationLabel = 'KMeans Map';
+
+    protected static ?string $title = 'KMeans Clustering Map';
+
+    protected static ?int $navigationSort = 6;
+
+    protected static ?string $cluster = KMeans::class;
+
+    public function mount()
+    {
+        // Initialization logic here
+    }
+}
