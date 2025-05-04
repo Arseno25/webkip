@@ -46,8 +46,10 @@
                             const layer = L.geoJSON(geojson, {
                                 onEachFeature: function(feature, layer) {
                                     if (feature.properties) {
+                                        console.log("Feature properties:", Object.keys(feature.properties));
+                                        console.log("Feature properties values:", feature.properties);
                                         let popupContent = '<div style="max-width: 300px; max-height: 200px; overflow: auto;">';
-                                        const excludedProps = ['OBJECTID', 'AREA', 'PERIMETER', 'KODE_UNSUR', 'Id'];
+                                        const excludedProps = ['OBJECTID', 'AREA', 'PERIMETER', 'KODE_UNSUR'];
                                         for (const key in feature.properties) {
                                             if (!excludedProps.includes(key)) {
                                                 popupContent += `<strong>${key}:</strong> ${feature.properties[key]}<br>`;
