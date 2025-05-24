@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <div class="rounded-xl shadow-lg p-6">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-gray-900">Optimasi Metode Elbow</h2>
+                <h2 class="text-2xl font-bold text-gray-900">Optimasi Metode Euclidean Distance</h2>
                 <div class="flex items-center space-x-2">
                     <span
                         class="px-3 py-1 text-sm font-medium rounded-full {{ $bestK ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
@@ -34,9 +34,9 @@
 
             @if (!empty($wcss))
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <!-- Grafik Elbow -->
+                    <!-- Grafik Euclidean Distance -->
                     <div class="lg:col-span-2  rounded-lg border border-gray-200 p-4">
-                        <h3 class="text-lg font-semibold mb-4">Grafik Elbow</h3>
+                        <h3 class="text-lg font-semibold mb-4">Grafik Euclidean Distance</h3>
                         <div class="h-80">
                             <canvas id="elbowChart"></canvas>
                         </div>

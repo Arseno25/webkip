@@ -10,7 +10,7 @@ use Spatie\SimpleExcel\SimpleExcelReader;
 
 class ClusterOptimize extends Page
 {
-    protected static ?string $title = 'Optimasi Metode Elbow';
+    protected static ?string $title = 'Optimasi Metode Euclidean Distance';
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
     protected static ?int $navigationSort = 2;
 
@@ -74,14 +74,29 @@ class ClusterOptimize extends Page
 
     private function findElbowPoint($wcss)
     {
-        // Simple method: find point of maximum curvature
-        $maxCurvature = 0;
-        $bestK = 2;
+        $ks = array_keys($wcss);
+        $firstK = $ks[0];
+        $lastK = $ks[count($ks) - 1];
 
-        for ($k = 2; $k < count($wcss) - 1; $k++) {
-            $curvature = abs($wcss[$k - 1] - 2 * $wcss[$k] + $wcss[$k + 1]);
-            if ($curvature > $maxCurvature) {
-                $maxCurvature = $curvature;
+        $x1 = $firstK;
+        $y1 = $wcss[$firstK];
+        $x2 = $lastK;
+        $y2 = $wcss[$lastK];
+
+        $maxDistance = -1;
+        $bestK = $x1;
+
+        foreach ($ks as $k) {
+            $x0 = $k;
+            $y0 = $wcss[$k];
+
+            // Euclidean distance from point to line
+            $numerator = abs(($y2 - $y1) * $x0 - ($x2 - $x1) * $y0 + $x2 * $y1 - $y2 * $x1);
+            $denominator = sqrt(pow($y2 - $y1, 2) + pow($x2 - $x1, 2));
+            $distance = $denominator == 0 ? 0 : $numerator / $denominator;
+
+            if ($distance > $maxDistance) {
+                $maxDistance = $distance;
                 $bestK = $k;
             }
         }

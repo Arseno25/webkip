@@ -90,7 +90,7 @@
                 tag="a"
                 href="{{ url('/admin/k-means/cluster-optimize') }}"
                 color="secondary">
-                Analisis dengan Metode Elbow
+                Analisis dengan Metode Euclidean Distance
             </x-filament::button>
         </div>
     </div>
