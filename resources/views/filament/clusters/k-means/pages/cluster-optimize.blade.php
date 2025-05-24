@@ -38,7 +38,7 @@
                     <div class="lg:col-span-2  rounded-lg border border-gray-200 p-4">
                         <h3 class="text-lg font-semibold mb-4">Grafik Euclidean Distance</h3>
                         <div class="h-80">
-                            <canvas id="elbowChart"></canvas>
+                            <canvas id="euclidean distanceChart"></canvas>
                         </div>
                     </div>
 
@@ -47,7 +47,7 @@
                         <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
                             <h3 class="text-lg font-semibold text-blue-800 mb-2">Rekomendasi Cluster</h3>
                             <div class="text-3xl font-bold text-blue-600">{{ $bestK }}</div>
-                            <p class="text-sm text-blue-600 mt-2">Jumlah cluster optimal berdasarkan metode elbow</p>
+                            <p class="text-sm text-blue-600 mt-2">Jumlah cluster optimal berdasarkan metode euclidean distance</p>
                         </div>
 
                         <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
@@ -149,7 +149,7 @@
         @if (!empty($wcss))
             <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <script>
-                const ctx = document.getElementById('elbowChart').getContext('2d');
+                const ctx = document.getElementById('euclidean distanceChart').getContext('2d');
                 new Chart(ctx, {
                     type: 'line',
                     data: {
