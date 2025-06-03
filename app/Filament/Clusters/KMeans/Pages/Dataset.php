@@ -2,56 +2,40 @@
 
 namespace App\Filament\Clusters\KMeans\Pages;
 
-use Filament\Forms;
 use Filament\Pages\Page;
-use Livewire\WithFileUploads;
 use App\Filament\Clusters\KMeans;
-use Illuminate\Support\Facades\Storage;
-use Spatie\SimpleExcel\SimpleExcelReader;
+use App\Models\KipRecipient;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Forms\Form;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\Session;
 
-class Dataset extends Page
+class Dataset extends Page implements HasForms
 {
-    use Forms\Concerns\InteractsWithForms;
-    use WithFileUploads;
+    use InteractsWithForms;
 
     protected static string $view = 'filament.clusters.k-means.pages.dataset';
 
-    protected static ?string $navigationIcon = 'heroicon-o-table-cells';
-    protected static ?string $navigationLabel = 'Upload Dataset';
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static ?string $navigationLabel = 'Dataset';
     protected static ?string $title = 'Dataset K-Means';
     protected static ?int $navigationSort = 1;
     protected static ?string $cluster = KMeans::class;
 
-    public $dataset;
     public $rawRows = [];
-    public $normalizedRows = [];
     public $header = [];
-    public $uploadedFilePath = null; // path file temp hasil upload
-    public $isUploaded = false;
+    public $isDataLoaded = false;
 
     public function mount(): void
     {
-        $this->form->fill();
+        $this->loadData();
     }
 
-    protected function getFormSchema(): array
+    public function form(Form $form): Form
     {
-        return [
-            Forms\Components\FileUpload::make('dataset')
-                ->label('Upload File Excel/CSV')
-                ->disk('public')
-                ->directory('temp')
-                ->preserveFilenames()
-                ->acceptedFileTypes([
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-                    'application/vnd.ms-excel', // .xls
-                    'text/csv',
-                    'text/plain',
-                ])
-                ->maxSize(5120)
-                ->required()
-                ->helperText('File Excel (.xlsx) atau CSV dengan data nilai siswa. Baris pertama adalah header.'),
-        ];
+        return $form;
     }
 
     private function minMaxNormalize(array $rows, array $header): array
@@ -84,80 +68,73 @@ class Dataset extends Page
         return $normalized;
     }
 
-    public function submit()
+    public function loadData()
     {
-        $this->reset(['rawRows', 'normalizedRows', 'header', 'isUploaded', 'uploadedFilePath']);
         try {
-            $data = $this->form->getState();
+            // Fetch all data from KipRecipient
+            $recipients = KipRecipient::whereNotNull('school_id')
+                ->with(['school', 'subdistrict'])
+                ->get();
 
-            if (empty($data['dataset'])) {
-                throw new \Exception('File tidak ditemukan');
+            if ($recipients->isEmpty()) {
+                throw new \Exception('Tidak ada data penerima KIP');
             }
 
-            $tempPath = Storage::disk('public')->path($data['dataset']);
-            $rows = SimpleExcelReader::create($tempPath)->getRows()->toArray();
+            // Transform data for clustering
+            $rows = $recipients->map(function ($recipient) {
+                return [
+                    'school' => $recipient->school->name ?? 'Tidak ada nama sekolah',
+                    'subdistrict' => $recipient->subdistrict->name ?? 'Tidak ada nama kecamatan',
+                    'year_received' => $recipient->year_received,
+                    'amount' => $recipient->amount ?? 0,
+                    'recipient' => $recipient->recipient ?? 0,
+                ];
+            })->toArray();
 
-            if (count($rows) < 1) {
-                throw new \Exception('Dataset kosong atau tidak valid');
-            }
-
-            $this->header = array_keys($rows[0]);
+            // Ambil header
+            $header = array_keys($rows[0]);
+            $this->header = $header;
             $this->rawRows = $rows;
-            $this->normalizedRows = $this->minMaxNormalize($rows, $this->header);
-            $this->uploadedFilePath = $data['dataset'];
-            $this->isUploaded = true;
+            $this->isDataLoaded = true;
 
-            session()->flash('success', 'File berhasil diupload dan data berhasil ditampilkan!');
+            // Konversi ke array numerik untuk clustering
+            $data = [];
+            foreach ($recipients as $recipient) {
+                $numericRow = [];
+                $numericRow[] = $recipient->school_id;
+                $numericRow[] = $recipient->subdistrict_id;
+                $numericRow[] = floatval($recipient->year_received);
+                $numericRow[] = floatval($recipient->amount ?? 0);
+                $numericRow[] = floatval($recipient->recipient ?? 0);
+                $data[] = $numericRow;
+            }
+
+            // Simpan data ke session
+            Session::put('kmeans_data', $data);
+            Session::put('kmeans_header', ['school_id', 'subdistrict_id', 'year_received', 'amount', 'recipient']);
+
+            Notification::make()
+                ->title('Data berhasil dimuat')
+                ->success()
+                ->send();
         } catch (\Exception $e) {
-            $this->addError('dataset', 'Error: ' . $e->getMessage());
+            Notification::make()
+                ->title('Error: ' . $e->getMessage())
+                ->danger()
+                ->send();
         }
     }
 
     public function lanjutkan()
     {
-        try {
-            if (!$this->isUploaded || !$this->uploadedFilePath) {
-                throw new \Exception('Silakan upload file terlebih dahulu.');
-            }
-
-            // Validasi data numerik (kecuali kolom pertama)
-            foreach ($this->rawRows as $rowIndex => $row) {
-                foreach ($this->header as $colIndex => $colName) {
-                    if ($colIndex === 0) continue;
-                    $value = trim($row[$colName]);
-                    if ($value === '') continue;
-                    if (!is_numeric($value)) {
-                        throw new \Exception(
-                            "Data tidak valid pada baris " . ($rowIndex + 2) .
-                                ", kolom $colName: '$value' bukan angka"
-                        );
-                    }
-                }
-            }
-
-            // Pastikan folder datasets ada
-            if (!Storage::disk('public')->exists('datasets')) {
-                Storage::disk('public')->makeDirectory('datasets');
-            }
-
-            $finalPath = 'datasets/dataset.xlsx';
-            if (Storage::disk('public')->exists($finalPath)) {
-                Storage::disk('public')->delete($finalPath);
-            }
-
-            $copied = Storage::disk('public')->copy($this->uploadedFilePath, $finalPath);
-            if (!$copied) {
-                throw new \Exception("Gagal menyalin file ke datasets/dataset.xlsx");
-            }
-            Storage::disk('public')->delete($this->uploadedFilePath);
-
-            // Simpan header ke session untuk proses selanjutnya
-            session(['uploaded_header' => $this->header]);
-
-            session()->flash('success', 'Dataset berhasil disimpan!');
-            $this->redirect('/admin/k-means/define-cluster');
-        } catch (\Exception $e) {
-            $this->addError('dataset', 'Error: ' . $e->getMessage());
+        if (!$this->isDataLoaded) {
+            Notification::make()
+                ->title('Data belum berhasil dimuat')
+                ->danger()
+                ->send();
+            return;
         }
+
+        $this->redirect('/admin/k-means/define-cluster');
     }
 }

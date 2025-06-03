@@ -36,55 +36,23 @@ class KipRecipientResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Section::make('Informasi Siswa')
-                    ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label('Nama Siswa')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('nisn')
-                            ->label('NISN')
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('kip_number')
-                            ->label('Nomor KIP')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(255),
-                        Forms\Components\Select::make('gender')
-                            ->label('Jenis Kelamin')
-                            ->options([
-                                'L' => 'Laki-laki',
-                                'P' => 'Perempuan',
-                            ])
-                            ->required(),
-                        Forms\Components\TextInput::make('parent_name')
-                            ->label('Nama Orang Tua')
-                            ->maxLength(255),
-                        Forms\Components\Select::make('grade')
-                            ->label('Kelas')
-                            ->options([
-                                '1' => 'Kelas 1',
-                                '2' => 'Kelas 2',
-                                '3' => 'Kelas 3',
-                                '4' => 'Kelas 4',
-                                '5' => 'Kelas 5',
-                                '6' => 'Kelas 6',
-                                '7' => 'Kelas 7',
-                                '8' => 'Kelas 8',
-                                '9' => 'Kelas 9',
-                                '10' => 'Kelas 10',
-                                '11' => 'Kelas 11',
-                                '12' => 'Kelas 12',
-                            ]),
+                ->schema([
                         Forms\Components\TextInput::make('year_received')
                             ->label('Tahun Penerimaan KIP')
                             ->required()
                             ->numeric()
                             ->minValue(2000)
                             ->maxValue(date('Y')),
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('Status Aktif')
-                            ->default(true),
+                Forms\Components\TextInput::make('recipient')
+                    ->label('Jumlah Penerimaan')
+                    ->numeric()
+                    ->required()
+                    ->minValue(0),
+                Forms\Components\TextInput::make('amount')
+                    ->label('Nominal')
+                    ->numeric()
+                    ->required()
+                    ->minValue(0),
                     ])->columns(2),
 
                 Forms\Components\Section::make('Sekolah dan Lokasi')
@@ -100,11 +68,7 @@ class KipRecipientResource extends Resource
                             ->relationship('subdistrict', 'name')
                             ->searchable()
                             ->preload()
-                            ->required(),
-                        Forms\Components\Textarea::make('address')
-                            ->label('Alamat')
-                            ->rows(3)
-                            ->columnSpanFull(),
+                    ->required(),
                         Map::make('location')
                             ->label('Lokasi Tempat Tinggal')
                             ->columnSpanFull()
@@ -125,12 +89,12 @@ class KipRecipientResource extends Resource
                             ->showFullscreenControl(true)
                             ->showZoomControl(true)
 
-                            // Location Features
-//                            ->liveLocation(true, true, 5000)
-//                            ->showMyLocationButton(true)
+                    // Location Features
+                    //                            ->liveLocation(true, true, 5000)
+                    //                            ->showMyLocationButton(true)
 
-                            // Extra Customization
-                            ->extraStyles([
+                    // Extra Customization
+                    ->extraStyles([
                                 'min-height: 400px',
                                 'border-radius: 8px'
                             ])
@@ -172,22 +136,9 @@ class KipRecipientResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Nama Siswa')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('kip_number')
-                    ->label('Nomor KIP')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('nisn')
-                    ->label('NISN')
-                    ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('gender')
-                    ->label('Jenis Kelamin')
-                    ->formatStateUsing(fn (string $state): string => $state === 'L' ? 'Laki-laki' : 'Perempuan')
-                    ->sortable(),
+            Tables\Columns\TextColumn::make('year_received')
+                ->label('Tahun Penerimaan')
+                ->sortable(),
                 Tables\Columns\TextColumn::make('school.name')
                     ->label('Sekolah')
                     ->searchable()
@@ -195,17 +146,13 @@ class KipRecipientResource extends Resource
                 Tables\Columns\TextColumn::make('subdistrict.name')
                     ->label('Kecamatan')
                     ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('grade')
-                    ->label('Kelas')
-                    ->formatStateUsing(fn (?string $state): string => $state ? "Kelas $state" : '-')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('year_received')
-                    ->label('Tahun Penerimaan')
-                    ->sortable(),
-                Tables\Columns\IconColumn::make('is_active')
-                    ->label('Status Aktif')
-                    ->boolean(),
+                ->sortable(),
+            Tables\Columns\TextColumn::make('recipient')
+                ->label('Jumlah Penerimaan')
+                ->sortable(),
+            Tables\Columns\TextColumn::make('amount')
+                ->label('Nominal')
+                ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
                     ->dateTime('d M Y')
@@ -223,30 +170,14 @@ class KipRecipientResource extends Resource
                     ->options([
                         'L' => 'Laki-laki',
                         'P' => 'Perempuan',
-                    ]),
-                Tables\Filters\SelectFilter::make('grade')
-                    ->label('Kelas')
-                    ->options([
-                        '1' => 'Kelas 1',
-                        '2' => 'Kelas 2',
-                        '3' => 'Kelas 3',
-                        '4' => 'Kelas 4',
-                        '5' => 'Kelas 5',
-                        '6' => 'Kelas 6',
-                        '7' => 'Kelas 7',
-                        '8' => 'Kelas 8',
-                        '9' => 'Kelas 9',
-                        '10' => 'Kelas 10',
-                        '11' => 'Kelas 11',
-                        '12' => 'Kelas 12',
-                    ]),
+                ]),
                 Tables\Filters\SelectFilter::make('year_received')
                     ->label('Tahun Penerimaan')
-                    ->options(fn () => KipRecipient::query()->distinct()->pluck('year_received', 'year_received')->toArray()),
+                ->options(fn() => KipRecipient::query()->distinct()->pluck('year_received', 'year_received')->toArray()),
                 Tables\Filters\Filter::make('is_active')
                     ->label('Status Aktif')
                     ->toggle()
-                    ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
+                ->query(fn(Builder $query): Builder => $query->where('is_active', true)),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -264,7 +195,7 @@ class KipRecipientResource extends Resource
             \Filament\Actions\Action::make('viewMap')
                 ->label('Lihat Peta')
                 ->icon('heroicon-o-map')
-                ->url(fn () => route('filament.admin.resources.reports.map')),
+                ->url(fn() => route('filament.admin.resources.reports.map')),
         ];
     }
 

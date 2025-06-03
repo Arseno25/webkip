@@ -9,7 +9,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use DotSwan\FilamentMapPicker\Forms\Components\MapPicker;
+use Dotswan\MapPicker\Fields\Map;
 
 class SchoolsRelationManager extends RelationManager
 {
@@ -26,12 +26,7 @@ class SchoolsRelationManager extends RelationManager
                 Forms\Components\TextInput::make('name')
                     ->label('Nama Sekolah')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('npsn')
-                    ->label('NPSN')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255),
+                ->maxLength(255),
                 Forms\Components\Select::make('level')
                     ->label('Jenjang')
                     ->options([
@@ -40,10 +35,7 @@ class SchoolsRelationManager extends RelationManager
                         'SMA' => 'SMA',
                         'SMK' => 'SMK',
                     ])
-                    ->required(),
-                Forms\Components\TextInput::make('principal_name')
-                    ->label('Nama Kepala Sekolah')
-                    ->maxLength(255),
+                ->required(),
                 Forms\Components\TextInput::make('phone')
                     ->label('Nomor Telepon')
                     ->tel()
@@ -55,11 +47,10 @@ class SchoolsRelationManager extends RelationManager
                 Forms\Components\Textarea::make('address')
                     ->label('Alamat')
                     ->rows(3),
-                MapPicker::make('location')
+            Map::make('location')
                     ->label('Lokasi Sekolah')
-                    ->defaultLocation([-6.2088, 106.8456]) // Jakarta as default
-                    ->draggableMarker()
-                    ->reactive()
+                ->defaultLocation(latitude: -6.2088, longitude: 106.8456)
+                ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
                         if ($state) {
                             $set('latitude', $state['lat']);
@@ -106,17 +97,10 @@ class SchoolsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Sekolah')
                     ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('npsn')
-                    ->label('NPSN')
-                    ->searchable()
-                    ->sortable(),
+                ->sortable(),
                 Tables\Columns\TextColumn::make('level')
                     ->label('Jenjang')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('principal_name')
-                    ->label('Kepala Sekolah')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                ->sortable(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Telepon')
                     ->toggleable(isToggledHiddenByDefault: true),

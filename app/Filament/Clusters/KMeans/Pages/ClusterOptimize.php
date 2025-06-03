@@ -4,9 +4,8 @@ namespace App\Filament\Clusters\KMeans\Pages;
 
 use App\Filament\Clusters\KMeans;
 use App\Helpers\KMeansHelper;
-
+use App\Models\KipRecipient;
 use Filament\Pages\Page;
-use Spatie\SimpleExcel\SimpleExcelReader;
 
 class ClusterOptimize extends Page
 {
@@ -28,30 +27,35 @@ class ClusterOptimize extends Page
         $kMax = request()->get('k_max', 10);
         $maxIter = request()->get('max_iter', 100);
 
-        $filePath = storage_path('app/public/datasets/dataset.xlsx');
-        if (!file_exists($filePath)) {
-            $filePath = storage_path('app/public/datasets/dataset.csv');
-        }
-        if (!file_exists($filePath)) {
-            $this->addError('elbow', 'Dataset tidak ditemukan. Silakan upload dataset terlebih dahulu.');
-            return;
-        }
-
         try {
-            $rows = \Spatie\SimpleExcel\SimpleExcelReader::create($filePath)->getRows()->toArray();
-            if (count($rows) < 1) {
-                $this->addError('elbow', 'Dataset kosong atau tidak valid.');
-                return;
+            // Fetch data from KipRecipient
+            $recipients = KipRecipient::whereNotNull('school_id')
+                ->with(['school', 'subdistrict'])
+                ->get();
+
+            if ($recipients->isEmpty()) {
+                throw new \Exception('Tidak ada data penerima KIP');
             }
+
+            // Transform data for clustering
+            $rows = $recipients->map(function ($recipient) {
+                return [
+                    'school_id' => $recipient->school_id,
+                    'subdistrict_id' => $recipient->subdistrict_id,
+                    'year_received' => $recipient->year_received,
+                    'amount' => $recipient->amount ?? 0,
+                    'recipient' => $recipient->recipient ?? 0,
+                ];
+            })->toArray();
 
             // Ambil header
             $header = array_keys($rows[0]);
-            // Konversi ke array numerik (skip kolom pertama)
+
+            // Konversi ke array numerik
             $data = [];
             foreach ($rows as $row) {
                 $numericRow = [];
-                foreach (array_values($row) as $i => $val) {
-                    if ($i === 0) continue;
+                foreach (array_values($row) as $val) {
                     $numericRow[] = floatval($val);
                 }
                 $data[] = $numericRow;
@@ -61,9 +65,9 @@ class ClusterOptimize extends Page
             $this->silhouetteScores = [];
             // Hitung WCSS untuk K = kMin sampai kMax
             for ($k = $kMin; $k <= $kMax; $k++) {
-                $result = \App\Helpers\KMeansHelper::kmeans($data, $k, $maxIter);
-                $this->wcss[$k] = \App\Helpers\KMeansHelper::calculateWCSS($result['clusters'], $result['centroids']);
-                $this->silhouetteScores[$k] = \App\Helpers\KMeansHelper::calculateSilhouetteScore($data, $result['clusters']);
+                $result = KMeansHelper::kmeans($data, $k, $maxIter);
+                $this->wcss[$k] = KMeansHelper::calculateWCSS($result['clusters'], $result['centroids']);
+                $this->silhouetteScores[$k] = KMeansHelper::calculateSilhouetteScore($data, $result['clusters']);
             }
 
             $this->bestK = $this->findElbowPoint($this->wcss);

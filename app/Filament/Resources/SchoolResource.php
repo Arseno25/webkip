@@ -43,13 +43,8 @@ class SchoolResource extends Resource
                         Forms\Components\TextInput::make('name')
                             ->label('Nama Sekolah')
                             ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('npsn')
-                            ->label('NPSN (Nomor Pokok Sekolah Nasional)')
-                            ->required()
-                            ->unique(ignoreRecord: true)
-                            ->maxLength(255),
-                        Forms\Components\Select::make('level')
+                    ->maxLength(255),
+                Forms\Components\Select::make('level')
                             ->label('Jenjang')
                             ->options([
                                 'SD' => 'SD',
@@ -67,10 +62,7 @@ class SchoolResource extends Resource
                     ])->columns(2),
 
                 Forms\Components\Section::make('Kontak')
-                    ->schema([
-                        Forms\Components\TextInput::make('principal_name')
-                            ->label('Nama Kepala Sekolah')
-                            ->maxLength(255),
+                ->schema([
                         Forms\Components\TextInput::make('phone')
                             ->label('Nomor Telepon')
                             ->tel()
@@ -176,20 +168,13 @@ class SchoolResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama Sekolah')
                     ->searchable()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('npsn')
-                    ->label('NPSN')
-                    ->searchable()
-                    ->sortable(),
+                ->sortable(),
                 Tables\Columns\TextColumn::make('level')
                     ->label('Jenjang')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('subdistrict.name')
                     ->label('Kecamatan')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('principal_name')
-                    ->label('Kepala Sekolah')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                ->sortable(),
                 Tables\Columns\TextColumn::make('phone')
                     ->label('Telepon')
                     ->toggleable(isToggledHiddenByDefault: true),

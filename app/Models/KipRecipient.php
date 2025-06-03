@@ -9,26 +9,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class KipRecipient extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'nisn',
-        'kip_number',
-        'gender',
-        'address',
         'school_id',
         'subdistrict_id',
-        'parent_name',
-        'grade',
         'year_received',
         'latitude',
         'longitude',
-        'is_active',
+        'amount',
+        'recipient',
     ];
 
     /**
@@ -37,7 +31,6 @@ class KipRecipient extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'is_active' => 'boolean',
         'year_received' => 'integer',
     ];
 

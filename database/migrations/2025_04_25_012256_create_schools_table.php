@@ -14,11 +14,9 @@ return new class extends Migration
         Schema::create('schools', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('npsn')->unique()->comment('Nomor Pokok Sekolah Nasional');
             $table->text('address')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
-            $table->string('principal_name')->nullable();
             $table->enum('level', ['SD', 'SMP', 'SMA', 'SMK'])->comment('School level');
             $table->foreignId('subdistrict_id')->constrained()->onDelete('cascade');
             $table->decimal('latitude', 10, 7)->nullable();

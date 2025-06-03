@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\KMeans\Pages;
 use App\Filament\Clusters\KMeans;
 use Filament\Pages\Page;
 use Filament\Forms;
+use Illuminate\Support\Facades\Session;
 
 class DefineCluster extends Page implements Forms\Contracts\HasForms
 {
@@ -23,14 +24,10 @@ class DefineCluster extends Page implements Forms\Contracts\HasForms
 
     public function mount(): void
     {
-        // Cek apakah file dataset sudah ada
-        $filePath = storage_path('app/public/datasets/dataset.xlsx');
-        if (!file_exists($filePath)) {
-            $filePath = storage_path('app/public/datasets/dataset.csv');
-        }
-        if (!file_exists($filePath)) {
-            session()->flash('error', 'Silakan upload dataset terlebih dahulu.');
-            $this->redirect('/admin/k-means/dataset'); // Use $this->redirect instead of return redirect()
+        // Cek apakah data sudah ada di session
+        if (!Session::has('kmeans_data')) {
+            session()->flash('error', 'Silakan muat data terlebih dahulu.');
+            $this->redirect('/admin/k-means/dataset');
             return;
         }
 

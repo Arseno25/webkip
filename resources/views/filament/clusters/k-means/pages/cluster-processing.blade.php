@@ -52,7 +52,7 @@
                         <table class="table-auto w-full border">
                             <thead>
                                 <tr>
-                                    <th class="px-4 py-2 border">Nama</th>
+                                    <th class="px-4 py-2 border">Data #</th>
                                     @foreach($step['centroids'] as $idx => $centroid)
                                         <th class="px-4 py-2 border">Centroid {{ $idx + 1 }}</th>
                                     @endforeach
@@ -61,7 +61,7 @@
                             <tbody>
                                 @foreach($step['distances'] as $idx => $distArr)
                                     <tr>
-                                        <td class="px-4 py-2 border">{{ $rows[$idx]['nama'] }}</td>
+                                        <td class="px-4 py-2 border">Data {{ $idx + 1 }}</td>
                                         @foreach($distArr as $dist)
                                             <td class="px-4 py-2 border">{{ number_format($dist, 4) }}</td>
                                         @endforeach

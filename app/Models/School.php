@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class School extends Model
 {
     use HasFactory;
-    
+
     /**
      * The attributes that are mass assignable.
      *
@@ -18,11 +18,9 @@ class School extends Model
      */
     protected $fillable = [
         'name',
-        'npsn',
         'address',
         'phone',
         'email',
-        'principal_name',
         'level',
         'subdistrict_id',
         'latitude',
