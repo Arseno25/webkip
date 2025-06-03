@@ -1,97 +1,70 @@
 <!-- resources/views/filament/pages/proses-kmeans.blade.php -->
-<x-filament::page>
+<x-filament-panels::page>
     <div class="space-y-6">
-        <!-- Hasil akhir K-Means bisa ditampilkan di bawah sini -->
-        <h2 class="text-2xl font-bold mt-8">Hasil K-Means</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-gray-950 p-4 rounded">
-                <div class="text-sm text-gray-500">Jumlah Cluster</div>
-                <div class="text-2xl font-bold">{{ count($result['clusters']) }}</div>
-            </div>
-            <div class="bg-gray-950 p-4 rounded">
-                <div class="text-sm text-gray-500">Jumlah Iterasi</div>
-                <div class="text-2xl font-bold">{{ $iterations }}</div>
-            </div>
-            <div class="bg-gray-950 p-4 rounded">
-                <div class="text-sm text-gray-500">Silhouette Score</div>
-                <div class="text-2xl font-bold">{{ number_format($silhouetteScore, 4) }}</div>
+        {{-- Informasi Proses --}}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Proses Clustering</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-500">Jumlah Iterasi</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $iterations }}</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-500">Silhouette Score</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ number_format($silhouetteScore, 4) }}</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-500">Jumlah Cluster</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ count($result['centroids'] ?? []) }}</p>
+                </div>
             </div>
         </div>
-        @foreach($result['history'] as $iterasi => $step)
-            <div class="mb-8">
-                <div class="bg-purple-600 text-white px-4 py-2 rounded-t font-bold">
-                    Perulangan Ke - {{ $iterasi + 1 }}
-                </div>
-                <div class=" p-4 rounded-b shadow">
-                    <!-- Tabel Centroid -->
-                    <h4 class="font-bold mb-2 mt-2">Penentuan Centroid</h4>
-                    <div class="overflow-x-auto">
-                        <table class="table-auto w-full mb-4 border">
-                            <thead>
-                                <tr>
-                                    @foreach($step['centroids'] as $idx => $centroid)
-                                        <th class="px-4 py-2 border">Centroid {{ $idx + 1 }}</th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @for($i = 0; $i < count($step['centroids'][0]); $i++)
-                                    <tr>
-                                        @foreach($step['centroids'] as $centroid)
-                                            <td class="px-4 py-2 border">{{ number_format($centroid[$i], 2) }}</td>
-                                        @endforeach
-                                    </tr>
-                                @endfor
-                            </tbody>
-                        </table>
-                    </div>
 
-                    <!-- Tabel Euclidean Distance -->
-                    <h4 class="font-bold mb-2 mt-6">Perulangan {{ $iterasi + 1 }} - Hitung Euclidean Distance</h4>
-                    <div class="overflow-x-auto">
-                        <table class="table-auto w-full border">
-                            <thead>
-                                <tr>
-                                    <th class="px-4 py-2 border">Data #</th>
-                                    @foreach($step['centroids'] as $idx => $centroid)
-                                        <th class="px-4 py-2 border">Centroid {{ $idx + 1 }}</th>
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($step['distances'] as $idx => $distArr)
-                                    <tr>
-                                        <td class="px-4 py-2 border">Data {{ $idx + 1 }}</td>
-                                        @foreach($distArr as $dist)
-                                            <td class="px-4 py-2 border">{{ number_format($dist, 4) }}</td>
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        {{-- Hasil Clustering --}}
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Hasil K-Means Clustering</h3>
             </div>
-        @endforeach
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            @foreach ($header as $h)
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {{ str_replace('_', ' ', $h) }}
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach ($rows as $row)
+                            <tr>
+                                @foreach ($header as $h)
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        @if ($h === 'amount')
+                                            Rp {{ number_format($row[$h], 0, ',', '.') }}
+                                        @elseif (is_array($row[$h]))
+                                            {{ json_encode($row[$h]) }}
+                                        @else
+                                            {{ $row[$h] }}
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <div class="flex justify-end space-x-4">
+        {{-- Tombol Lanjutkan --}}
+        <div class="flex justify-end">
             <x-filament::button
-                wire:click="$refresh"
-                color="secondary">
-                Proses Ulang
-            </x-filament::button>
-            <x-filament::button
-                tag="a"
-                href="{{ url('/admin/k-means/clustering') }}"
-                color="primary">
-                Lanjut ke Hasil Clustering
-            </x-filament::button>
-            <x-filament::button
-                tag="a"
-                href="{{ url('/admin/k-means/cluster-optimize') }}"
-                color="secondary">
-                Analisis dengan Metode Euclidean Distance
+                wire:click="goToOptimize"
+                color="primary"
+            >
+                Optimasi Cluster
             </x-filament::button>
         </div>
     </div>
-</x-filament::page>
+</x-filament-panels::page>

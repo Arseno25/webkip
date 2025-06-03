@@ -3,8 +3,6 @@
 namespace App\Filament\Widgets;
 
 use App\Models\KipRecipient;
-use App\Models\School;
-use App\Models\Subdistrict;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -16,12 +14,6 @@ class KipStatisticsWidget extends BaseWidget
     {
         // Menghitung statistik
         $totalKipRecipients = KipRecipient::count();
-        $totalSchools = School::count();
-        $totalSubdistricts = Subdistrict::count();
-
-        // Menghitung jumlah penerima KIP berdasarkan jenis kelamin
-        $maleCount = KipRecipient::where('gender', 'L')->count();
-        $femaleCount = KipRecipient::where('gender', 'P')->count();
 
         return [
             Stat::make('Total Penerima KIP', $totalKipRecipients)

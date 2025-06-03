@@ -28,9 +28,49 @@ class Dataset extends Page implements HasForms
     public $header = [];
     public $isDataLoaded = false;
 
-    public function mount(): void
+    public function mount()
     {
-        $this->loadData();
+        try {
+            // Ambil data dari database
+            $data = KipRecipient::with(['school', 'subdistrict'])->get();
+
+            if ($data->isEmpty()) {
+                Session::flash('error', 'Tidak ada data yang tersedia.');
+                return;
+            }
+
+            // Set header
+            $this->header = ['school', 'subdistrict', 'year_received', 'amount', 'recipient'];
+
+            // Transform data untuk ditampilkan
+            $this->rawRows = $data->map(function ($item) {
+                return [
+                    'school' => $item->school->name,
+                    'subdistrict' => $item->subdistrict->name,
+                    'year_received' => $item->year_received,
+                    'amount' => $item->amount,
+                    'recipient' => $item->recipient
+                ];
+            })->toArray();
+
+            // Transform data untuk clustering
+            $clusteringData = $data->map(function ($item) {
+                return [
+                    'school_id' => $item->school_id,
+                    'subdistrict_id' => $item->subdistrict_id,
+                    'year_received' => $item->year_received,
+                    'amount' => $item->amount,
+                    'recipient' => $item->recipient
+                ];
+            })->toArray();
+
+            // Simpan data ke session
+            Session::put('kmeans_data', $clusteringData);
+
+            $this->isDataLoaded = true;
+        } catch (\Exception $e) {
+            Session::flash('error', 'Error: ' . $e->getMessage());
+        }
     }
 
     public function form(Form $form): Form
@@ -68,73 +108,12 @@ class Dataset extends Page implements HasForms
         return $normalized;
     }
 
-    public function loadData()
-    {
-        try {
-            // Fetch all data from KipRecipient
-            $recipients = KipRecipient::whereNotNull('school_id')
-                ->with(['school', 'subdistrict'])
-                ->get();
-
-            if ($recipients->isEmpty()) {
-                throw new \Exception('Tidak ada data penerima KIP');
-            }
-
-            // Transform data for clustering
-            $rows = $recipients->map(function ($recipient) {
-                return [
-                    'school' => $recipient->school->name ?? 'Tidak ada nama sekolah',
-                    'subdistrict' => $recipient->subdistrict->name ?? 'Tidak ada nama kecamatan',
-                    'year_received' => $recipient->year_received,
-                    'amount' => $recipient->amount ?? 0,
-                    'recipient' => $recipient->recipient ?? 0,
-                ];
-            })->toArray();
-
-            // Ambil header
-            $header = array_keys($rows[0]);
-            $this->header = $header;
-            $this->rawRows = $rows;
-            $this->isDataLoaded = true;
-
-            // Konversi ke array numerik untuk clustering
-            $data = [];
-            foreach ($recipients as $recipient) {
-                $numericRow = [];
-                $numericRow[] = $recipient->school_id;
-                $numericRow[] = $recipient->subdistrict_id;
-                $numericRow[] = floatval($recipient->year_received);
-                $numericRow[] = floatval($recipient->amount ?? 0);
-                $numericRow[] = floatval($recipient->recipient ?? 0);
-                $data[] = $numericRow;
-            }
-
-            // Simpan data ke session
-            Session::put('kmeans_data', $data);
-            Session::put('kmeans_header', ['school_id', 'subdistrict_id', 'year_received', 'amount', 'recipient']);
-
-            Notification::make()
-                ->title('Data berhasil dimuat')
-                ->success()
-                ->send();
-        } catch (\Exception $e) {
-            Notification::make()
-                ->title('Error: ' . $e->getMessage())
-                ->danger()
-                ->send();
-        }
-    }
-
-    public function lanjutkan()
+    public function goToDefineCluster()
     {
         if (!$this->isDataLoaded) {
-            Notification::make()
-                ->title('Data belum berhasil dimuat')
-                ->danger()
-                ->send();
+            Session::flash('error', 'Data belum tersedia. Silakan tunggu hingga data selesai dimuat.');
             return;
         }
-
-        $this->redirect('/admin/k-means/define-cluster');
+        return redirect('/admin/k-means/define-cluster');
     }
 }

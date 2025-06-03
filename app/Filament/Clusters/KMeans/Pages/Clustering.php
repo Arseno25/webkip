@@ -4,6 +4,8 @@ namespace App\Filament\Clusters\KMeans\Pages;
 
 use App\Filament\Clusters\KMeans;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Session;
+use App\Helpers\KMeansHelper;
 
 class Clustering extends Page
 {
@@ -18,42 +20,71 @@ class Clustering extends Page
     public $header = [];
     public $centroids = [];
     public $summary = [];
+    public $rows = [];
+    public $k;
+    public $maxIterations;
+    public $centroidType;
+    public $clusters = [];
+    public $iterations = 0;
+    public $wcss = 0;
+    public $silhouetteScore = 0;
 
     public function mount()
     {
-        $result = session('kmeans_result', []);
-        $header = session('kmeans_header', []);
-        $names = session('uploaded_names', []);
+        // Ambil data dari session
+        $data = Session::get('kmeans_data');
+        $k = Session::get('kmeans_k');
+        $maxIterations = Session::get('kmeans_max_iterations');
+        $centroidType = Session::get('kmeans_centroid_type');
 
-        if (empty($result) || empty($result['clusters'])) {
-            session()->flash('error', 'Belum ada hasil clustering. Silakan proses K-Means terlebih dahulu.');
-            $this->redirect('/admin/k-means/cluster-processing');
-            return;
+        if (!$data || !$k || !$maxIterations || !$centroidType) {
+            Session::flash('error', 'Data clustering tidak lengkap. Silakan mulai dari awal.');
+            return redirect('/admin/k-means/dataset');
         }
 
-        // Ambil header numerik (skip kolom pertama)
-        $numericHeader = array_slice($header, 1);
+        $this->k = $k;
+        $this->maxIterations = $maxIterations;
+        $this->centroidType = $centroidType;
 
-        // Gabungkan nama, data numerik, dan cluster
-        $dataWithCluster = [];
-        $rowIndex = 0;
-        foreach ($result['clusters'] as $clusterIdx => $cluster) {
-            foreach ($cluster as $point) {
-                $row = [];
-                $row['nama'] = $names[$rowIndex] ?? '-';
-                // Pastikan jumlah kolom sama sebelum array_combine
-                if (count($numericHeader) !== count($point)) {
+        // Transformasi data untuk ditampilkan
+        $this->header = array_keys($data[0]);
+        $this->rows = array_map(function ($row) {
+            return array_values($row);
+        }, $data);
+
+        try {
+            // Proses K-Means dengan nilai K yang sudah dioptimasi
+            $result = KMeansHelper::kmeans($this->rows, $this->k, $this->maxIterations);
+            $this->clusters = $result['clusters'];
+            $this->centroids = $result['centroids'];
+            $this->iterations = $result['iterations'];
+            $this->wcss = KMeansHelper::calculateWCSS($this->clusters, $this->centroids);
+            $this->silhouetteScore = KMeansHelper::calculateSilhouetteScore($this->rows, $this->clusters);
+
+            // Transform hasil clustering untuk ditampilkan
+            $this->dataWithCluster = [];
+            $rowIndex = 0;
+            foreach ($this->clusters as $clusterIndex => $cluster) {
+                foreach ($cluster as $point) {
+                    $row = [];
+                    $row['school'] = $data[$rowIndex]['school'] ?? 'Unknown';
+                    $row['subdistrict'] = $data[$rowIndex]['subdistrict'] ?? 'Unknown';
+                    $row['year_received'] = $point[2];
+                    $row['amount'] = $point[3];
+                    $row['recipient'] = $point[4];
+                    $row['cluster'] = $clusterIndex + 1;
+                    $this->dataWithCluster[] = $row;
                     $rowIndex++;
-                    continue;
                 }
-                $row += array_combine($numericHeader, $point);
-                $row['cluster'] = $clusterIdx + 1;
-                $dataWithCluster[] = $row;
-                $rowIndex++;
             }
+        } catch (\Exception $e) {
+            Session::flash('error', 'Error: ' . $e->getMessage());
+            return redirect('/admin/k-means/dataset');
         }
-        $this->dataWithCluster = $dataWithCluster;
-        $this->header = array_merge(['nama'], $numericHeader, ['cluster']);
-        $this->centroids = $result['centroids'];
+    }
+
+    public function goToOptimize()
+    {
+        return redirect('/admin/k-means/cluster-optimize');
     }
 }

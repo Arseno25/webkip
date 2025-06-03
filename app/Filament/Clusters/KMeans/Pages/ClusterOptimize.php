@@ -3,108 +3,90 @@
 namespace App\Filament\Clusters\KMeans\Pages;
 
 use App\Filament\Clusters\KMeans;
-use App\Helpers\KMeansHelper;
-use App\Models\KipRecipient;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Session;
+use App\Helpers\KMeansHelper;
 
 class ClusterOptimize extends Page
 {
-    protected static ?string $title = 'Optimasi Metode Euclidean Distance';
-    protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
-    protected static ?int $navigationSort = 2;
-
+    protected static ?string $title = 'Optimasi Jumlah Cluster';
+    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static ?int $navigationSort = 3;
     protected static string $view = 'filament.clusters.k-means.pages.cluster-optimize';
 
     protected static ?string $cluster = KMeans::class;
 
+    public $k;
+    public $maxIterations;
+    public $centroidType;
+    public $optimalK;
+    public $silhouetteScore;
     public $wcss = [];
     public $silhouetteScores = [];
-    public $bestK = null;
 
     public function mount()
     {
-        $kMin = request()->get('k_min', 1);
-        $kMax = request()->get('k_max', 10);
-        $maxIter = request()->get('max_iter', 100);
+        // Ambil data dari session
+        $data = Session::get('kmeans_data');
+        $k = Session::get('kmeans_k');
+        $maxIterations = Session::get('kmeans_max_iterations');
+        $centroidType = Session::get('kmeans_centroid_type');
+
+        if (!$data || !$k || !$maxIterations || !$centroidType) {
+            Session::flash('error', 'Data clustering tidak lengkap. Silakan mulai dari awal.');
+            return redirect('/admin/k-means/dataset');
+        }
+
+        $this->k = $k;
+        $this->maxIterations = $maxIterations;
+        $this->centroidType = $centroidType;
 
         try {
-            // Fetch data from KipRecipient
-            $recipients = KipRecipient::whereNotNull('school_id')
-                ->with(['school', 'subdistrict'])
-                ->get();
-
-            if ($recipients->isEmpty()) {
-                throw new \Exception('Tidak ada data penerima KIP');
-            }
-
-            // Transform data for clustering
-            $rows = $recipients->map(function ($recipient) {
+            // Transformasi data untuk clustering
+            $rows = array_map(function ($row) {
                 return [
-                    'school_id' => $recipient->school_id,
-                    'subdistrict_id' => $recipient->subdistrict_id,
-                    'year_received' => $recipient->year_received,
-                    'amount' => $recipient->amount ?? 0,
-                    'recipient' => $recipient->recipient ?? 0,
+                    floatval($row['school_id']),
+                    floatval($row['subdistrict_id']),
+                    floatval($row['year_received']),
+                    floatval($row['amount']),
+                    floatval($row['recipient'])
                 ];
-            })->toArray();
+            }, $data);
 
-            // Ambil header
-            $header = array_keys($rows[0]);
-
-            // Konversi ke array numerik
-            $data = [];
-            foreach ($rows as $row) {
-                $numericRow = [];
-                foreach (array_values($row) as $val) {
-                    $numericRow[] = floatval($val);
-                }
-                $data[] = $numericRow;
-            }
-
+            // Proses optimasi untuk mencari nilai K optimal
+            $minK = 2;
+            $maxK = 10;
             $this->wcss = [];
             $this->silhouetteScores = [];
-            // Hitung WCSS untuk K = kMin sampai kMax
-            for ($k = $kMin; $k <= $kMax; $k++) {
-                $result = KMeansHelper::kmeans($data, $k, $maxIter);
-                $this->wcss[$k] = KMeansHelper::calculateWCSS($result['clusters'], $result['centroids']);
-                $this->silhouetteScores[$k] = KMeansHelper::calculateSilhouetteScore($data, $result['clusters']);
+
+            for ($k = $minK; $k <= $maxK; $k++) {
+                $result = KMeansHelper::kmeans($rows, $k, $this->maxIterations);
+                $clusters = $result['clusters'];
+                $centroids = $result['centroids'];
+
+                // Hitung WCSS
+                $wcss = KMeansHelper::calculateWCSS($clusters, $centroids);
+                $this->wcss[$k] = $wcss;
+
+                // Hitung Silhouette Score
+                $silhouetteScore = KMeansHelper::calculateSilhouetteScore($rows, $clusters);
+                $this->silhouetteScores[$k] = $silhouetteScore;
             }
 
-            $this->bestK = $this->findElbowPoint($this->wcss);
+            // Tentukan nilai K optimal berdasarkan Silhouette Score tertinggi
+            $this->optimalK = array_search(max($this->silhouetteScores), $this->silhouetteScores);
+            $this->silhouetteScore = $this->silhouetteScores[$this->optimalK];
+
+            // Simpan nilai K optimal ke session
+            Session::put('kmeans_optimal_k', $this->optimalK);
         } catch (\Exception $e) {
-            $this->addError('elbow', 'Error: ' . $e->getMessage());
+            Session::flash('error', 'Error: ' . $e->getMessage());
+            return redirect('/admin/k-means/dataset');
         }
     }
 
-    private function findElbowPoint($wcss)
+    public function goToClustering()
     {
-        $ks = array_keys($wcss);
-        $firstK = $ks[0];
-        $lastK = $ks[count($ks) - 1];
-
-        $x1 = $firstK;
-        $y1 = $wcss[$firstK];
-        $x2 = $lastK;
-        $y2 = $wcss[$lastK];
-
-        $maxDistance = -1;
-        $bestK = $x1;
-
-        foreach ($ks as $k) {
-            $x0 = $k;
-            $y0 = $wcss[$k];
-
-            // Euclidean distance from point to line
-            $numerator = abs(($y2 - $y1) * $x0 - ($x2 - $x1) * $y0 + $x2 * $y1 - $y2 * $x1);
-            $denominator = sqrt(pow($y2 - $y1, 2) + pow($x2 - $x1, 2));
-            $distance = $denominator == 0 ? 0 : $numerator / $denominator;
-
-            if ($distance > $maxDistance) {
-                $maxDistance = $distance;
-                $bestK = $k;
-            }
-        }
-
-        return $bestK;
+        return redirect('/admin/k-means/clustering');
     }
 }
