@@ -119,59 +119,82 @@ class Clustering extends Page
 
     public function downloadResults()
     {
-        // Implementasi untuk mengunduh hasil clustering dalam format CSV
-        $results = Session::get('kmeans_results');
-        if (!$results) {
-            Session::flash('error', 'Hasil clustering tidak tersedia.');
-            return;
-        }
-
-        $filename = 'kmeans_clustering_results_' . date('Y-m-d_H-i-s') . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
-
-        $handle = fopen('php://temp', 'w+');
-
-        // Header
-        fputcsv($handle, array_merge(
-            ['Cluster', 'School', 'Subdistrict', 'Year Received', 'Amount', 'Recipient']
-        ));
-
-        // Data per cluster
-        foreach ($results['clusters'] as $clusterIndex => $clusterData) {
-            foreach ($clusterData as $data) {
-                fputcsv($handle, [
-                    'Cluster ' . ($clusterIndex + 1),
-                    $data['school_name'],
-                    $data['subdistrict_name'],
-                    $data['year_received'],
-                    $data['amount'],
-                    $data['recipient']
-                ]);
+        try {
+            // Validasi data
+            if (empty($this->clusterResults)) {
+                Session::flash('error', 'Tidak ada hasil clustering untuk diunduh.');
+                return;
             }
+
+            // Siapkan nama file
+            $filename = 'hasil_clustering_kmeans_' . date('Y-m-d_H-i-s') . '.csv';
+
+            // Siapkan header response
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Pragma' => 'no-cache',
+                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires' => '0'
+            ];
+
+            // Buat temporary file handler
+            $handle = fopen('php://temp', 'r+');
+
+            // Set UTF-8 BOM untuk support karakter khusus di Excel
+            fputs($handle, "\xEF\xBB\xBF");
+
+            // Tulis header informasi clustering
+            fputcsv($handle, ['Informasi Clustering']);
+            fputcsv($handle, ['Jumlah Cluster (K)', $this->k]);
+            fputcsv($handle, ['Jumlah Iterasi', $this->iterations]);
+            fputcsv($handle, ['WCSS', number_format($this->wcss, 4)]);
+            fputcsv($handle, ['Silhouette Score', number_format($this->silhouetteScore, 4)]);
+            fputcsv($handle, []); // Baris kosong
+
+            // Tulis informasi centroid
+            fputcsv($handle, ['Informasi Centroid']);
+            $centroidHeader = array_merge(['Cluster'], array_keys($this->centroids[0]));
+            fputcsv($handle, $centroidHeader);
+            foreach ($this->centroids as $i => $centroid) {
+                $row = array_merge(['Cluster ' . ($i + 1)], array_map(function ($value) {
+                    return number_format($value, 4);
+                }, array_values($centroid)));
+                fputcsv($handle, $row);
+            }
+            fputcsv($handle, []); // Baris kosong
+
+            // Tulis hasil clustering
+            fputcsv($handle, ['Hasil Clustering']);
+            fputcsv($handle, ['Cluster', 'Sekolah', 'Kecamatan', 'Tahun', 'Dana', 'Penerima']);
+
+            foreach ($this->clusterResults as $clusterIndex => $cluster) {
+                foreach ($cluster as $data) {
+                    fputcsv($handle, [
+                        'Cluster ' . ($clusterIndex + 1),
+                        $data['school_name'],
+                        $data['subdistrict_name'],
+                        $data['year_received'],
+                        $data['amount'],
+                        $data['recipient']
+                    ]);
+                }
+            }
+
+            // Kembali ke awal file
+            rewind($handle);
+
+            // Baca seluruh isi file
+            $csv = stream_get_contents($handle);
+
+            // Tutup file handler
+            fclose($handle);
+
+            // Return response
+            return response($csv, 200, $headers);
+        } catch (\Exception $e) {
+            Session::flash('error', 'Gagal mengunduh hasil: ' . $e->getMessage());
+            return null;
         }
-
-        // Centroid information
-        fputcsv($handle, []); // Empty line
-        fputcsv($handle, ['Centroids']);
-        fputcsv($handle, array_merge(['Cluster'], array_keys($results['centroids'][0])));
-        foreach ($results['centroids'] as $i => $centroid) {
-            fputcsv($handle, array_merge(['Cluster ' . ($i + 1)], array_values($centroid)));
-        }
-
-        // Evaluation metrics
-        fputcsv($handle, []);
-        fputcsv($handle, ['Evaluation Metrics']);
-        fputcsv($handle, ['WCSS', $results['wcss']]);
-        fputcsv($handle, ['Silhouette Score', $results['silhouette_score']]);
-        fputcsv($handle, ['Iterations', $results['iterations']]);
-
-        rewind($handle);
-        $csv = stream_get_contents($handle);
-        fclose($handle);
-
-        return response($csv, 200, $headers);
     }
 }
