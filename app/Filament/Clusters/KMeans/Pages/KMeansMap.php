@@ -65,26 +65,32 @@ class KMeansMap extends Page
         foreach ($this->clusterResults as $clusterIndex => $cluster) {
             foreach ($cluster as $data) {
                 $school = \App\Models\School::find($data['school_id']);
-                if ($school && $school->latitude && $school->longitude) {
-                    $mapData[] = [
-                        'lat' => (float) $school->latitude,
-                        'lng' => (float) $school->longitude,
-                        'title' => $data['school_name'],
-                        'cluster' => $clusterIndex + 1,
-                        'color' => $this->clusterColors[$clusterIndex + 1],
-                        'info' => [
-                            'Sekolah' => $data['school_name'],
-                            'Kecamatan' => $data['subdistrict_name'],
-                            'Tahun' => $data['year_received'],
-                            'Dana' => 'Rp ' . number_format($data['amount'], 0, ',', '.'),
-                            'Cluster' => 'Cluster ' . ($clusterIndex + 1)
-                        ]
-                    ];
+                if (!$school || !$school->latitude || !$school->longitude) {
+                    Log::warning('Sekolah tanpa koordinat:', [
+                        'school_id' => $data['school_id'],
+                        'school_name' => $data['school_name']
+                    ]);
+                    continue;
                 }
+                $mapData[] = [
+                    'lat' => (float) $school->latitude,
+                    'lng' => (float) $school->longitude,
+                    'title' => $data['school_name'],
+                    'cluster' => $clusterIndex + 1,
+                    'color' => $this->clusterColors[$clusterIndex + 1],
+                    'info' => [
+                        'Sekolah' => $data['school_name'],
+                        'Kecamatan' => $data['subdistrict_name'],
+                        'Tahun' => $data['year_received'],
+                        'Dana' => 'Rp ' . number_format($data['amount'], 0, ',', '.'),
+                        'Cluster' => 'Cluster ' . ($clusterIndex + 1)
+                    ]
+                ];
             }
         }
 
         // Debug log
+        Log::info('Total marker di peta:', ['count' => count($mapData)]);
         Log::info('Map Data Summary:', [
             'total_points' => count($mapData),
             'clusters' => array_count_values(array_column($mapData, 'cluster'))
