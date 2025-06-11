@@ -59,33 +59,53 @@ class ClusterOptimize extends Page
 
             // Untuk data lebih dari 2, cari K optimal
             $minK = 2;
-            $maxK = min($numData - 1, 3); // Batasi K maksimal ke 3 untuk data sedikit
+            $maxK = min(10, (int)sqrt($numData)); // Batasi K maksimal ke akar jumlah data
             $this->wcss = [];
             $this->silhouetteScores = [];
             $bestSilhouetteScore = -1;
             $bestK = null;
 
+            // Lakukan multiple trials untuk setiap K untuk mendapatkan hasil terbaik
+            $numTrials = 3;
+
             // Hitung WCSS dan Silhouette Score untuk setiap K
             for ($k = $minK; $k <= $maxK; $k++) {
-                try {
-                    $result = KMeansHelper::kmeans($data, $k, $this->maxIterations, $this->centroidType);
+                $bestWcss = PHP_FLOAT_MAX;
+                $bestSilhouetteForK = -1;
 
-                    if (!empty($result['clusters']) && !empty($result['centroids'])) {
-                        // Hitung WCSS
-                        $wcss = KMeansHelper::calculateWCSS($data, $result['clusters'], $result['centroids']);
-                        // Hitung Silhouette Score
-                        $silhouetteScore = KMeansHelper::calculateSilhouetteScore($data, $result['clusters']);
+                for ($trial = 0; $trial < $numTrials; $trial++) {
+                    try {
+                        // Jalankan K-Means dengan jarak Euclidean
+                        $result = KMeansHelper::kmeans($data, $k, $this->maxIterations, $this->centroidType);
 
-                        $this->wcss[$k] = $wcss;
-                        $this->silhouetteScores[$k] = $silhouetteScore;
+                        if (!empty($result['clusters']) && !empty($result['centroids'])) {
+                            // Hitung WCSS menggunakan jarak Euclidean
+                            $wcss = KMeansHelper::calculateWCSS($data, $result['clusters'], $result['centroids']);
 
-                        if ($silhouetteScore > $bestSilhouetteScore) {
-                            $bestSilhouetteScore = $silhouetteScore;
-                            $bestK = $k;
+                            // Hitung Silhouette Score menggunakan jarak Euclidean
+                            $silhouetteScore = KMeansHelper::calculateSilhouetteScore($data, $result['clusters']);
+
+                            // Update nilai terbaik untuk K ini
+                            if ($silhouetteScore > $bestSilhouetteForK) {
+                                $bestSilhouetteForK = $silhouetteScore;
+                                $bestWcss = $wcss;
+                            }
                         }
+                    } catch (\Exception $e) {
+                        continue;
                     }
-                } catch (\Exception $e) {
-                    continue;
+                }
+
+                // Simpan hasil terbaik untuk K ini
+                if ($bestSilhouetteForK > -1) {
+                    $this->wcss[$k] = $bestWcss;
+                    $this->silhouetteScores[$k] = $bestSilhouetteForK;
+
+                    // Update K optimal jika ini adalah hasil terbaik
+                    if ($bestSilhouetteForK > $bestSilhouetteScore) {
+                        $bestSilhouetteScore = $bestSilhouetteForK;
+                        $bestK = $k;
+                    }
                 }
             }
 
