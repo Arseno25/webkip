@@ -49,69 +49,64 @@ class KMeansMap extends Page
         // Ambil data cluster
         $this->clusterResults = $results['clusters'];
 
-        // Debug log
-        Log::info('Clustering Results:', [
+        // Debug log untuk melihat struktur data clustering
+        Log::info('Clustering Results Structure:', [
             'has_results' => !empty($results),
             'cluster_count' => count($this->clusterResults),
-            'first_cluster' => !empty($this->clusterResults) ? count($this->clusterResults[0]) : 0,
-            'sample_data' => !empty($this->clusterResults) ? $this->clusterResults[0][0] : null
+            'first_cluster_size' => !empty($this->clusterResults) ? count($this->clusterResults[0]) : 0,
+            'first_cluster_sample' => !empty($this->clusterResults) ? $this->clusterResults[0][0] : null
         ]);
     }
 
     public function getMapData()
     {
         $mapData = [];
+        $rawData = Session::get('kmeans_raw_data');
 
+        // Loop untuk setiap cluster
         foreach ($this->clusterResults as $clusterIndex => $cluster) {
-            Log::info("Processing cluster {$clusterIndex}:", [
-                'cluster_size' => count($cluster),
-                'sample_data' => !empty($cluster) ? $cluster[0] : null
+            Log::info("Processing cluster " . ($clusterIndex + 1) . ":", [
+                'size' => count($cluster)
             ]);
 
-            foreach ($cluster as $data) {
-                // Debug log untuk setiap data
-                Log::info("Processing data:", [
-                    'school_id' => $data['school_id'] ?? 'not set',
-                    'school_name' => $data['school_name'] ?? 'not set'
-                ]);
+            // Loop untuk setiap data dalam cluster
+            foreach ($cluster as $dataIndex => $data) {
+                // Cari data asli dari rawData
+                $originalData = $rawData[$dataIndex] ?? null;
 
-                // Ambil data sekolah berdasarkan school_id
-                $school = School::find($data['school_id']);
+                if ($originalData) {
+                    // Ambil data sekolah
+                    $school = School::find($originalData['school_id']);
 
-                if ($school) {
-                    Log::info("School found:", [
-                        'id' => $school->id,
-                        'name' => $school->name,
-                        'latitude' => $school->latitude,
-                        'longitude' => $school->longitude
-                    ]);
-                } else {
-                    Log::info("School not found for ID: " . ($data['school_id'] ?? 'not set'));
-                }
+                    if ($school && $school->latitude && $school->longitude) {
+                        $mapData[] = [
+                            'lat' => (float) $school->latitude,
+                            'lng' => (float) $school->longitude,
+                            'title' => $originalData['school_name'],
+                            'cluster' => $clusterIndex + 1,
+                            'color' => $this->clusterColors[$clusterIndex + 1],
+                            'info' => [
+                                'Sekolah' => $originalData['school_name'],
+                                'Kecamatan' => $originalData['subdistrict_name'],
+                                'Tahun' => $originalData['year_received'],
+                                'Dana' => 'Rp ' . number_format($originalData['amount'], 0, ',', '.'),
+                                'Cluster' => 'Cluster ' . ($clusterIndex + 1)
+                            ]
+                        ];
 
-                if ($school && $school->latitude && $school->longitude) {
-                    $mapData[] = [
-                        'lat' => (float) $school->latitude,
-                        'lng' => (float) $school->longitude,
-                        'title' => $data['school_name'],
-                        'cluster' => $clusterIndex + 1,
-                        'color' => $this->clusterColors[$clusterIndex + 1],
-                        'info' => [
-                            'Sekolah' => $data['school_name'],
-                            'Kecamatan' => $data['subdistrict_name'],
-                            'Tahun' => $data['year_received'],
-                            'Dana' => 'Rp ' . number_format($data['amount'], 0, ',', '.'),
-                            'Cluster' => 'Cluster ' . ($clusterIndex + 1)
-                        ]
-                    ];
+                        Log::info("Added school to map:", [
+                            'school' => $originalData['school_name'],
+                            'cluster' => $clusterIndex + 1
+                        ]);
+                    }
                 }
             }
         }
 
         // Debug log
-        Log::info('Map Data:', [
+        Log::info('Map Data Summary:', [
             'total_points' => count($mapData),
-            'first_point' => !empty($mapData) ? $mapData[0] : null
+            'clusters' => array_count_values(array_column($mapData, 'cluster'))
         ]);
 
         return $mapData;
