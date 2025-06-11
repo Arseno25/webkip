@@ -113,9 +113,17 @@ class Clustering extends Page
     {
         $groupedData = array_fill(0, $this->k, []);
 
-        foreach ($clusters as $clusterIndex => $pointIndices) {
-            foreach ($pointIndices as $index) {
-                $groupedData[$clusterIndex][] = $this->rawData[$index];
+        // Jika $clusters adalah array of array (setiap cluster berisi array index data asli)
+        if (is_array($clusters) && is_array($clusters[0])) {
+            foreach ($clusters as $clusterIndex => $pointIndices) {
+                foreach ($pointIndices as $index) {
+                    $groupedData[$clusterIndex][] = $this->rawData[$index];
+                }
+            }
+        } else {
+            // Jika $clusters adalah array label (label per data)
+            foreach ($clusters as $dataIndex => $clusterIndex) {
+                $groupedData[$clusterIndex][] = $this->rawData[$dataIndex];
             }
         }
 
