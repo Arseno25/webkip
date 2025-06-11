@@ -6,9 +6,14 @@ use App\Filament\Clusters\KMeans;
 use App\Helpers\KMeansHelper;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Session;
+use Livewire\WithFileUploads;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class Clustering extends Page
 {
+    use WithFileUploads;
+
     protected static string $view = 'filament.clusters.k-means.pages.clustering';
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
     protected static ?string $navigationLabel = 'Hasil Clustering';
@@ -128,18 +133,15 @@ class Clustering extends Page
 
             // Siapkan nama file
             $filename = 'hasil_clustering_kmeans_' . date('Y-m-d_H-i-s') . '.csv';
+            $tempPath = storage_path('app/public/temp/' . $filename);
 
-            // Siapkan header response
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                'Pragma' => 'no-cache',
-                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-                'Expires' => '0'
-            ];
+            // Pastikan direktori temp ada
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0777, true);
+            }
 
-            // Buat temporary file handler
-            $handle = fopen('php://temp', 'r+');
+            // Buat file handler
+            $handle = fopen($tempPath, 'w');
 
             // Set UTF-8 BOM untuk support karakter khusus di Excel
             fputs($handle, "\xEF\xBB\xBF");
@@ -181,17 +183,14 @@ class Clustering extends Page
                 }
             }
 
-            // Kembali ke awal file
-            rewind($handle);
-
-            // Baca seluruh isi file
-            $csv = stream_get_contents($handle);
-
             // Tutup file handler
             fclose($handle);
 
-            // Return response
-            return response($csv, 200, $headers);
+            // Return file untuk didownload
+            return response()->download($tempPath, $filename, [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             Session::flash('error', 'Gagal mengunduh hasil: ' . $e->getMessage());
             return null;

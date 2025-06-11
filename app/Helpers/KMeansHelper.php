@@ -144,11 +144,21 @@ class KMeansHelper
 
     // Inisialisasi centroid
     try {
-      $centroids = $initMethod === 'kmeans++' ?
-        self::initializeKMeansPlusPlusCentroids($data, $k) :
-        self::initializeRandomCentroids($data, $k);
+      switch ($initMethod) {
+        case 'kmeans++':
+          $centroids = self::initializeKMeansPlusPlusCentroids($data, $k);
+          break;
+        case 'random':
+          $centroids = self::initializeRandomCentroids($data, $k);
+          break;
+        case 'average':
+          $centroids = self::initializeAverageCentroids($data, $k);
+          break;
+        default:
+          $centroids = self::initializeKMeansPlusPlusCentroids($data, $k);
+      }
     } catch (\Exception $e) {
-      // Jika gagal dengan kmeans++, coba dengan random
+      // Jika gagal dengan metode yang dipilih, coba dengan random
       $centroids = self::initializeRandomCentroids($data, $k);
     }
 
@@ -275,6 +285,59 @@ class KMeansHelper
     $centroids = [];
     foreach ($indices as $index) {
       $centroids[] = $data[$index];
+    }
+
+    return $centroids;
+  }
+
+  private static function initializeAverageCentroids($data, $k)
+  {
+    if (empty($data)) {
+      throw new \Exception('Data tidak boleh kosong');
+    }
+
+    $n = count($data);
+    $dim = count($data[0]);
+
+    if ($n < $k) {
+      throw new \Exception('Jumlah data harus lebih besar dari jumlah cluster');
+    }
+
+    // Hitung rata-rata dan standar deviasi untuk setiap dimensi
+    $means = array_fill(0, $dim, 0);
+    $stdDevs = array_fill(0, $dim, 0);
+
+    // Hitung mean
+    foreach ($data as $point) {
+      foreach ($point as $i => $value) {
+        $means[$i] += $value;
+      }
+    }
+    foreach ($means as &$mean) {
+      $mean /= $n;
+    }
+
+    // Hitung standar deviasi
+    foreach ($data as $point) {
+      foreach ($point as $i => $value) {
+        $stdDevs[$i] += pow($value - $means[$i], 2);
+      }
+    }
+    foreach ($stdDevs as &$stdDev) {
+      $stdDev = sqrt($stdDev / $n);
+    }
+
+    // Inisialisasi centroids menggunakan rata-rata dan standar deviasi
+    $centroids = [];
+    for ($i = 0; $i < $k; $i++) {
+      $centroid = [];
+      foreach ($means as $j => $mean) {
+        // Gunakan distribusi normal untuk menentukan centroid
+        // Centroid akan tersebar di sekitar mean dengan jarak berdasarkan standar deviasi
+        $spread = $stdDevs[$j] * (($i - ($k - 1) / 2) / $k);
+        $centroid[$j] = $mean + $spread;
+      }
+      $centroids[] = $centroid;
     }
 
     return $centroids;

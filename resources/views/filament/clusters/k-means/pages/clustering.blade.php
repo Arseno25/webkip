@@ -125,11 +125,14 @@
             </div>
 
             <!-- Download Results -->
-            <div class="flex justify-end">
-                <button wire:click="downloadResults"
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:hover:bg-green-800">
+            <div class="flex justify-end mt-6">
+                <x-filament::button
+                    wire:click="downloadResults"
+                    icon="heroicon-o-arrow-down-tray"
+                    color="success"
+                >
                     Download Hasil (CSV)
-                </button>
+                </x-filament::button>
             </div>
         @else
             <div class="p-4 text-amber-700 bg-amber-100 rounded-lg dark:bg-amber-200 dark:text-amber-800" role="alert">
