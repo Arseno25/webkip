@@ -142,7 +142,7 @@
                     </p>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">K</th>
@@ -152,7 +152,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                             @foreach($wcss as $k => $value)
-                                <tr class="{{ $k == $optimalK ? 'bg-blue-50 dark:bg-blue-900' : '' }} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <tr class="{{ $k == $optimalK ? 'bg-blue-50 dark:bg-blue-900' : '' }} transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $k == $optimalK ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-300' }}">
                                         {{ $k }}
                                         @if($k == $optimalK)

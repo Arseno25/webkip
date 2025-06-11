@@ -51,7 +51,7 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 @foreach($header as $column)
@@ -63,7 +63,7 @@
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                             @foreach($rawRows as $row)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <tr class="transition-colors">
                                     @foreach($header as $column)
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                                             @if($column == 'amount')

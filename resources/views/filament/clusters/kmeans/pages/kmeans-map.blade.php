@@ -51,7 +51,7 @@
                     @foreach($clusterColors as $cluster => $color)
                         <div class="flex items-center space-x-2">
                             <div class="w-4 h-4 rounded-full" style="background-color: {{ $color }}"></div>
-                            <span class="text-sm text-gray-700 dark:text-gray-300">Cluster {{ $cluster }}</span>
+                            <span class="text-sm text-gray-700 dark:text-white">Cluster {{ $cluster }}</span>
                         </div>
                     @endforeach
                 </div>

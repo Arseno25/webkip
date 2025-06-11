@@ -43,11 +43,11 @@
             </div>
 
             <!-- Centroids -->
-            <div class="mb-6">
+            <div class="mb-6 overflow-x-auto mt-10">
                 <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Centroid Setiap Cluster</h3>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Cluster</th>
@@ -78,11 +78,11 @@
             </div>
 
             <!-- Cluster Results -->
-            <div class="mb-6">
+            <div class="mb-6 overflow-x-auto mt-6">
                 <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Hasil Pengelompokan</h3>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Cluster</th>

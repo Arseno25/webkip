@@ -26,7 +26,7 @@
                 <h3 class="text-lg font-medium text-gray-900">Hasil K-Means Clustering</h3>
             </div>
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             @foreach ($header as $h)
