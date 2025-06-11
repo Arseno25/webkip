@@ -66,13 +66,13 @@ class DefineCluster extends Page implements HasForms
             Select::make('centroidType')
                 ->label('Metode Inisialisasi Centroid')
                 ->options([
-                    'kmeans++' => 'K-Means++',
-                'random' => 'Random',
-                'average' => 'Average (Rata-rata)'
+                    'kmeans++' => 'K-Means++ (Rekomendasi)',
+                    'average' => 'Average (Rata-rata)',
+                    'random' => 'Random (Acak)'
                 ])
                 ->default($this->centroidType)
                 ->required()
-                ->helperText('K-Means++ memberikan hasil yang lebih stabil, Random untuk pemilihan acak, Average menggunakan nilai rata-rata data')
+                ->helperText('K-Means++: Inisialisasi cerdas untuk hasil optimal, Average: Berdasarkan rata-rata data, Random: Pemilihan acak')
             ]);
     }
 

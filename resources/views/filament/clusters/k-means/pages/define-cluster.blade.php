@@ -107,13 +107,13 @@
                 </div>
 
                 <!-- Centroid Initialization -->
-                <div class="bg-white rounded-xl shadow-sm dark:bg-gray-800 overflow-hidden">
+                <div class="bg-white rounded-lg shadow dark:bg-gray-800">
                     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <div class="bg-purple-500 rounded-md p-3">
+                                <div class="bg-blue-500 rounded-md p-3">
                                     <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                     </svg>
                                 </div>
                             </div>
@@ -122,20 +122,25 @@
                                     Metode Inisialisasi Centroid
                                 </h3>
                                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                                    Pilih metode untuk menentukan titik pusat awal
+                                    Pilih metode untuk menentukan posisi awal centroid
                                 </p>
                             </div>
                         </div>
                         <div class="mt-6">
                             <select wire:model="centroidType"
-                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white sm:text-sm"
-                                required>
-                                <option value="kmeans++">K-Means++</option>
-                                <option value="random">Random</option>
+                                class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white sm:text-sm">
+                                <option value="kmeans++">K-Means++ (Rekomendasi)</option>
+                                <option value="average">Average (Rata-rata)</option>
+                                <option value="random">Random (Acak)</option>
                             </select>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                K-Means++ memberikan hasil yang lebih stabil dibandingkan Random
-                            </p>
+                            <div class="mt-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
+                                <h4 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Keterangan Metode:</h4>
+                                <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                    <li><span class="font-medium">K-Means++:</span> Metode cerdas yang memilih centroid awal dengan optimal</li>
+                                    <li><span class="font-medium">Average:</span> Menggunakan rata-rata dan sebaran data untuk penentuan centroid</li>
+                                    <li><span class="font-medium">Random:</span> Memilih centroid secara acak dari data yang ada</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
