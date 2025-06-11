@@ -53,8 +53,7 @@ class KMeansMap extends Page
         Log::info('Clustering Results Structure:', [
             'has_results' => !empty($results),
             'cluster_count' => count($this->clusterResults),
-            'first_cluster_size' => !empty($this->clusterResults) ? count($this->clusterResults[0]) : 0,
-            'first_cluster_sample' => !empty($this->clusterResults) ? $this->clusterResults[0][0] : null
+            'clusters_size' => array_map('count', $this->clusterResults)
         ]);
     }
 
@@ -63,16 +62,29 @@ class KMeansMap extends Page
         $mapData = [];
         $rawData = Session::get('kmeans_raw_data');
 
+        // Debug raw data
+        Log::info('Raw Data:', [
+            'count' => count($rawData),
+            'sample' => !empty($rawData) ? $rawData[0] : null
+        ]);
+
         // Loop untuk setiap cluster
         foreach ($this->clusterResults as $clusterIndex => $cluster) {
             Log::info("Processing cluster " . ($clusterIndex + 1) . ":", [
-                'size' => count($cluster)
+                'size' => count($cluster),
+                'sample' => !empty($cluster) ? $cluster[0] : null
             ]);
 
             // Loop untuk setiap data dalam cluster
-            foreach ($cluster as $dataIndex => $data) {
-                // Cari data asli dari rawData
-                $originalData = $rawData[$dataIndex] ?? null;
+            foreach ($cluster as $data) {
+                // Cari data asli dari rawData berdasarkan index
+                $originalData = null;
+                foreach ($rawData as $raw) {
+                    if ($raw['school_name'] === $data['school_name']) {
+                        $originalData = $raw;
+                        break;
+                    }
+                }
 
                 if ($originalData) {
                     // Ambil data sekolah
