@@ -1,66 +1,72 @@
 <!-- resources/views/filament/clusters/k-means/pages/clustering.blade.php -->
 <x-filament-panels::page>
-    <div class="space-y-6">
-        @if (session('error'))
-            <div class="bg-red-50 border-l-4 border-red-400 p-4">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                clip-rule="evenodd" />
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <p class="text-sm text-red-700">
-                            {{ session('error') }}
-                        </p>
-                    </div>
-                </div>
+    <div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Hasil K-Means Clustering</h2>
+            <p class="mt-2 text-gray-600 dark:text-gray-300">
+                Hasil pengelompokan data menggunakan algoritma K-Means.
+            </p>
+        </div>
+
+        @if(session('error'))
+            <div class="p-4 mb-6 text-red-700 bg-red-100 rounded-lg dark:bg-red-200 dark:text-red-800" role="alert">
+                {{ session('error') }}
             </div>
         @endif
 
-        <div class="bg-black rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-black mb-6">Hasil Clustering</h2>
-
-            <div class="space-y-6">
-                <div class="bg-gray-900 rounded-lg p-6">
-                    <h3 class="text-lg font-semibold text-black mb-4">Parameter Clustering</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-black font-medium">Jumlah Cluster (K):</p>
-                            <p class="text-black">{{ $this->k }}</p>
-                        </div>
-                        <div>
-                            <p class="text-black font-medium">Maksimum Iterasi:</p>
-                            <p class="text-black">{{ $this->maxIterations }}</p>
-                        </div>
-                        <div>
-                            <p class="text-black font-medium">Type Centroid:</p>
-                            <p class="text-black">{{ $this->centroidType }}</p>
-                        </div>
-                    </div>
+        @if(!empty($clusterResults))
+            <!-- Parameter Clustering -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Jumlah Cluster</h4>
+                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ $k }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Total kelompok yang terbentuk</p>
                 </div>
 
-                <div class="bg-gray-900 rounded-lg p-6">
-                    <h3 class="text-lg font-semibold text-black mb-4">Hasil Clustering</h3>
+                <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Iterasi</h4>
+                    <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ $iterations }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Jumlah iterasi yang dilakukan</p>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">WCSS</h4>
+                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">{{ number_format($wcss, 4) }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Within Cluster Sum of Squares</p>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
+                    <h4 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Silhouette Score</h4>
+                    <p class="text-3xl font-bold text-orange-600 dark:text-orange-400">{{ number_format($silhouetteScore, 4) }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Kualitas hasil clustering</p>
+                </div>
+            </div>
+
+            <!-- Centroids -->
+            <div class="mb-6">
+                <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Centroid Setiap Cluster</h3>
                     <div class="overflow-x-auto">
-                        <table class="w-full divide-y divide-gray-700">
-                            <thead class="bg-gray-800">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    @foreach ($this->header as $column)
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-black uppercase tracking-wider">
-                                            {{ $column }}
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Cluster</th>
+                                    @foreach($features as $feature)
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">
+                                            {{ str_replace('_', ' ', $feature) }}
                                         </th>
                                     @endforeach
                                 </tr>
                             </thead>
-                            <tbody class="bg-gray-900 divide-y divide-gray-700">
-                                @foreach ($this->rows as $row)
+                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                                @foreach($centroids as $i => $centroid)
                                     <tr>
-                                        @foreach ($row as $value)
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-black">
-                                                {{ $value }}
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">
+                                            Cluster {{ $i + 1 }}
+                                        </td>
+                                        @foreach($features as $feature)
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {{ number_format($centroid[$feature], 4) }}
                                             </td>
                                         @endforeach
                                     </tr>
@@ -69,38 +75,66 @@
                         </table>
                     </div>
                 </div>
+            </div>
 
-                <div class="flex justify-end">
-                    <x-filament::button
-                        wire:click="goToOptimize"
-                        color="primary"
-                        class="bg-black text-black hover:bg-gray-900"
-                    >
-                        Optimasi Cluster
-                    </x-filament::button>
+            <!-- Cluster Results -->
+            <div class="mb-6">
+                <div class="bg-white p-4 rounded-lg shadow dark:bg-gray-700">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Hasil Pengelompokan</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Cluster</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Sekolah</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Kecamatan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Tahun</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Dana</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Penerima</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                                @foreach($clusterResults as $clusterIndex => $cluster)
+                                    @foreach($cluster as $data)
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">
+                                                Cluster {{ $clusterIndex + 1 }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {{ $data['school_name'] }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {{ $data['subdistrict_name'] }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {{ $data['year_received'] }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {{ number_format($data['amount']) }}
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                {{ $data['recipient'] }}
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="bg-black rounded-lg shadow-lg p-6">
-            <h3 class="text-lg font-semibold text-black mb-4">Informasi Clustering</h3>
-            <div class="space-y-4">
-                <div class="bg-gray-900 rounded-lg p-4">
-                    <h4 class="text-md font-medium text-black mb-2">Metode Clustering</h4>
-                    <p class="text-black">
-                        Proses clustering menggunakan algoritma K-Means dengan parameter yang telah dioptimasi.
-                        Hasil clustering menunjukkan pengelompokan data berdasarkan karakteristik yang sama.
-                    </p>
-                </div>
-
-                <div class="bg-gray-900 rounded-lg p-4">
-                    <h4 class="text-md font-medium text-black mb-2">Interpretasi Hasil</h4>
-                    <p class="text-black">
-                        Setiap baris data dikelompokkan ke dalam cluster tertentu berdasarkan kedekatan dengan
-                        centroid cluster. Angka cluster menunjukkan kelompok yang dimiliki oleh data tersebut.
-                    </p>
-                </div>
+            <!-- Download Results -->
+            <div class="flex justify-end">
+                <button wire:click="downloadResults"
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:hover:bg-green-800">
+                    Download Hasil (CSV)
+                </button>
             </div>
-        </div>
+        @else
+            <div class="p-4 text-amber-700 bg-amber-100 rounded-lg dark:bg-amber-200 dark:text-amber-800" role="alert">
+                Sedang memproses clustering...
+            </div>
+        @endif
     </div>
 </x-filament-panels::page>

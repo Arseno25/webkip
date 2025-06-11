@@ -122,175 +122,196 @@ class KMeansHelper
     return $centroids;
   }
 
-  public static function kmeans($data, $k, $maxIterations = 100, $centroidMethod = 'random')
+  public static function kmeans($data, $k, $maxIterations = 100, $initMethod = 'kmeans++')
   {
-    if (empty($data)) return ['centroids' => [], 'clusters' => [], 'iterations' => 0, 'history' => []];
-    if ($k <= 0) return ['centroids' => [], 'clusters' => [], 'iterations' => 0, 'history' => []];
+    if (empty($data)) {
+      throw new \Exception('Data tidak boleh kosong.');
+    }
 
-    // Normalize data
-    $normalizedData = self::normalizeData($data);
-    if (empty($normalizedData)) return ['centroids' => [], 'clusters' => [], 'iterations' => 0, 'history' => []];
+    $n = count($data);
+    if ($n < 2) {
+      throw new \Exception('Minimal harus ada 2 data untuk melakukan clustering.');
+    }
 
-    // Initialize centroids
-    $centroids = self::initializeCentroids($normalizedData, $k, $centroidMethod);
-    if (empty($centroids)) return ['centroids' => [], 'clusters' => [], 'iterations' => 0, 'history' => []];
+    // Jika hanya ada 2 data, paksa menggunakan k=2
+    if ($n == 2) {
+      $k = 2;
+    }
+    // Jika k terlalu besar, sesuaikan
+    else if ($k >= $n) {
+      $k = max(2, $n - 1);
+    }
+
+    // Inisialisasi centroid
+    try {
+      $centroids = $initMethod === 'kmeans++' ?
+        self::initializeKMeansPlusPlusCentroids($data, $k) :
+        self::initializeRandomCentroids($data, $k);
+    } catch (\Exception $e) {
+      // Jika gagal dengan kmeans++, coba dengan random
+      $centroids = self::initializeRandomCentroids($data, $k);
+    }
 
     $prevCentroids = [];
     $iterations = 0;
-    $history = [];
+    $convergenceThreshold = 0.0001;
 
-    while (!self::centroidsConverged($centroids, $prevCentroids) && $iterations < $maxIterations) {
-      $prevCentroids = $centroids;
+    while ($iterations < $maxIterations) {
+      // Assign points to clusters
       $clusters = array_fill(0, $k, []);
-      $distances = [];
+      foreach ($data as $i => $point) {
+        $bestCluster = 0;
+        $minDistance = PHP_FLOAT_MAX;
 
-      // Assign points to nearest centroid
-      foreach ($normalizedData as $idx => $point) {
-        $minDist = PHP_FLOAT_MAX;
-        $cluster = 0;
-        $pointDistances = [];
-
-        for ($i = 0; $i < $k; $i++) {
-          if (!isset($centroids[$i])) continue;
-          $dist = self::euclideanDistance($point, $centroids[$i]);
-          $pointDistances[] = $dist;
-          if ($dist < $minDist) {
-            $minDist = $dist;
-            $cluster = $i;
+        for ($j = 0; $j < $k; $j++) {
+          $distance = self::euclideanDistance($point, $centroids[$j]);
+          if ($distance < $minDistance) {
+            $minDistance = $distance;
+            $bestCluster = $j;
           }
         }
-
-        if (isset($clusters[$cluster])) {
-          $clusters[$cluster][] = $point;
-        }
-        $distances[$idx] = $pointDistances;
+        $clusters[$bestCluster][] = $i;
       }
 
-      // Save history
-      $history[] = [
-        'centroids' => $centroids,
-        'distances' => $distances,
-      ];
+      // Save previous centroids
+      $prevCentroids = $centroids;
 
       // Update centroids
       for ($i = 0; $i < $k; $i++) {
-        if (!empty($clusters[$i])) {
-          $centroids[$i] = self::calculateMean($clusters[$i]);
-        } else {
-          // If cluster is empty, reinitialize its centroid
-          $newCentroid = self::initializeCentroids($normalizedData, 1, 'random');
-          if (!empty($newCentroid)) {
-            $centroids[$i] = $newCentroid[0];
+        if (empty($clusters[$i])) {
+          // Jika cluster kosong, pilih data secara acak
+          $randomIndex = array_rand($data);
+          $centroids[$i] = $data[$randomIndex];
+          continue;
+        }
+
+        $newCentroid = array_fill_keys(array_keys($data[0]), 0.0);
+        foreach ($clusters[$i] as $pointIndex) {
+          foreach ($data[$pointIndex] as $feature => $value) {
+            $newCentroid[$feature] += $value;
           }
         }
+        foreach ($newCentroid as $feature => $sum) {
+          $newCentroid[$feature] = $sum / count($clusters[$i]);
+        }
+        $centroids[$i] = $newCentroid;
+      }
+
+      // Check convergence
+      if (self::hasConverged($prevCentroids, $centroids, $convergenceThreshold)) {
+        break;
       }
 
       $iterations++;
     }
 
-    // Denormalize centroids back to original scale
-    $denormalizedCentroids = self::denormalizeCentroids($centroids, $data);
-
     return [
-      'centroids' => $denormalizedCentroids,
       'clusters' => $clusters,
-      'iterations' => $iterations,
-      'history' => $history,
+      'centroids' => $centroids,
+      'iterations' => $iterations
     ];
   }
 
-  private static function denormalizeCentroids($centroids, $originalData)
+  private static function initializeKMeansPlusPlusCentroids($data, $k)
   {
-    if (empty($centroids) || empty($originalData)) return $centroids;
+    $centroids = [];
+    $n = count($data);
 
-    $dim = count($originalData[0]);
-    $min = array_fill(0, $dim, PHP_FLOAT_MAX);
-    $max = array_fill(0, $dim, PHP_FLOAT_MIN);
+    // Choose first centroid randomly
+    $firstIndex = rand(0, $n - 1);
+    $centroids[] = $data[$firstIndex];
 
-    // Find min and max for each dimension
-    foreach ($originalData as $point) {
-      for ($i = 0; $i < $dim; $i++) {
-        if (!isset($point[$i])) continue;
-        $min[$i] = min($min[$i], $point[$i]);
-        $max[$i] = max($max[$i], $point[$i]);
+    // Choose remaining centroids
+    while (count($centroids) < $k) {
+      $distances = [];
+      $sumDistances = 0;
+
+      // Calculate distances from points to nearest centroid
+      foreach ($data as $point) {
+        $minDistance = PHP_FLOAT_MAX;
+        foreach ($centroids as $centroid) {
+          $distance = self::euclideanDistance($point, $centroid);
+          $minDistance = min($minDistance, $distance);
+        }
+        $distances[] = $minDistance * $minDistance;
+        $sumDistances += $distances[count($distances) - 1];
+      }
+
+      // Choose next centroid with probability proportional to distance
+      $rand = mt_rand() / mt_getrandmax() * $sumDistances;
+      $sum = 0;
+      foreach ($distances as $i => $distance) {
+        $sum += $distance;
+        if ($sum >= $rand) {
+          $centroids[] = $data[$i];
+          break;
+        }
       }
     }
 
-    // Denormalize centroids
-    $denormalized = [];
-    foreach ($centroids as $centroid) {
-      $denormCentroid = [];
-      for ($i = 0; $i < $dim; $i++) {
-        if (!isset($centroid[$i])) continue;
-        $range = $max[$i] - $min[$i];
-        $denormCentroid[] = $centroid[$i] * $range + $min[$i];
-      }
-      $denormalized[] = $denormCentroid;
-    }
-
-    return $denormalized;
+    return $centroids;
   }
 
-  public static function euclideanDistance($a, $b)
+  private static function initializeRandomCentroids($data, $k)
   {
-    if (count($a) !== count($b)) {
-      throw new \Exception('Dimensions do not match');
+    $n = count($data);
+
+    // Jika k lebih besar dari jumlah data, kurangi k
+    if ($k >= $n) {
+      $k = max(2, $n - 1);
+    }
+
+    // Jika hanya ada 2 data, gunakan keduanya sebagai centroid
+    if ($n == 2 && $k == 2) {
+      return $data;
+    }
+
+    // Acak indeks untuk centroid
+    $indices = range(0, $n - 1);
+    shuffle($indices);
+    $indices = array_slice($indices, 0, $k);
+
+    // Buat centroid dari indeks yang dipilih
+    $centroids = [];
+    foreach ($indices as $index) {
+      $centroids[] = $data[$index];
+    }
+
+    return $centroids;
+  }
+
+  private static function euclideanDistance($point1, $point2)
+  {
+    if (count($point1) !== count($point2)) {
+      throw new \Exception('Points have different dimensions');
     }
 
     $sum = 0;
-    for ($i = 0; $i < count($a); $i++) {
-      if (!isset($a[$i]) || !isset($b[$i])) continue;
-      $sum += pow($a[$i] - $b[$i], 2);
+    foreach ($point1 as $key => $value) {
+      $diff = $value - $point2[$key];
+      $sum += $diff * $diff;
     }
     return sqrt($sum);
   }
 
-  private static function calculateMean($points)
+  private static function hasConverged($oldCentroids, $newCentroids, $threshold)
   {
-    if (empty($points)) return [];
+    if (empty($oldCentroids)) return false;
 
-    $dim = count($points[0]);
-    $mean = array_fill(0, $dim, 0);
-    $count = array_fill(0, $dim, 0);
-
-    foreach ($points as $point) {
-      for ($i = 0; $i < $dim; $i++) {
-        if (!isset($point[$i])) continue;
-        $mean[$i] += $point[$i];
-        $count[$i]++;
-      }
-    }
-
-    for ($i = 0; $i < $dim; $i++) {
-      if ($count[$i] > 0) {
-        $mean[$i] /= $count[$i];
-      }
-    }
-
-    return $mean;
-  }
-
-  private static function centroidsConverged($current, $previous)
-  {
-    if (empty($previous)) return false;
-    $threshold = 0.0001;
-
-    foreach ($current as $i => $centroid) {
-      if (!isset($previous[$i])) return false;
-      if (self::euclideanDistance($centroid, $previous[$i]) > $threshold) {
+    foreach ($newCentroids as $i => $centroid) {
+      if (self::euclideanDistance($centroid, $oldCentroids[$i]) > $threshold) {
         return false;
       }
     }
     return true;
   }
 
-  public static function calculateWCSS($clusters, $centroids)
+  public static function calculateWCSS($data, $clusters, $centroids)
   {
     $wcss = 0;
     foreach ($clusters as $i => $cluster) {
-      if (!isset($centroids[$i])) continue;
-      foreach ($cluster as $point) {
-        $wcss += pow(self::euclideanDistance($point, $centroids[$i]), 2);
+      foreach ($cluster as $pointIndex) {
+        $wcss += pow(self::euclideanDistance($data[$pointIndex], $centroids[$i]), 2);
       }
     }
     return $wcss;
@@ -298,54 +319,59 @@ class KMeansHelper
 
   public static function calculateSilhouetteScore($data, $clusters)
   {
-    if (count($clusters) < 2) return 0;
+    if (count($clusters) < 2) {
+      return 0;
+    }
 
-    $silhouettes = [];
+    $silhouetteSum = 0;
+    $totalPoints = 0;
+
     foreach ($clusters as $i => $cluster) {
-      foreach ($cluster as $point) {
-        $a = self::averageIntraClusterDistance($point, $cluster);
-        $b = self::minimumInterClusterDistance($point, $clusters, $i);
+      foreach ($cluster as $pointIndex) {
+        $a = self::calculateAverageIntraClusterDistance($data, $pointIndex, $cluster);
+        $b = self::calculateMinInterClusterDistance($data, $pointIndex, $clusters, $i);
 
-        if (max($a, $b) == 0) {
-          $silhouettes[] = 0;
-        } else {
-          $silhouettes[] = ($b - $a) / max($a, $b);
+        if ($a === 0 && $b === 0) {
+          continue;
         }
+
+        $silhouette = ($b - $a) / max($a, $b);
+        $silhouetteSum += $silhouette;
+        $totalPoints++;
       }
     }
 
-    return !empty($silhouettes) ? array_sum($silhouettes) / count($silhouettes) : 0;
+    return $totalPoints > 0 ? $silhouetteSum / $totalPoints : 0;
   }
 
-  private static function averageIntraClusterDistance($point, $cluster)
+  private static function calculateAverageIntraClusterDistance($data, $pointIndex, $cluster)
   {
     if (count($cluster) <= 1) return 0;
 
     $sum = 0;
-    $count = 0;
-    foreach ($cluster as $other) {
-      if ($point !== $other) {
-        $sum += self::euclideanDistance($point, $other);
-        $count++;
+    foreach ($cluster as $otherIndex) {
+      if ($pointIndex !== $otherIndex) {
+        $sum += self::euclideanDistance($data[$pointIndex], $data[$otherIndex]);
       }
     }
-    return $count > 0 ? $sum / $count : 0;
+    return $sum / (count($cluster) - 1);
   }
 
-  private static function minimumInterClusterDistance($point, $clusters, $currentClusterIndex)
+  private static function calculateMinInterClusterDistance($data, $pointIndex, $clusters, $currentClusterIndex)
   {
-    $minDist = PHP_FLOAT_MAX;
+    $minDistance = PHP_FLOAT_MAX;
 
     foreach ($clusters as $i => $cluster) {
       if ($i !== $currentClusterIndex && !empty($cluster)) {
-        $avgDist = array_sum(array_map(function ($other) use ($point) {
-          return self::euclideanDistance($point, $other);
-        }, $cluster)) / count($cluster);
-
-        $minDist = min($minDist, $avgDist);
+        $distance = 0;
+        foreach ($cluster as $otherIndex) {
+          $distance += self::euclideanDistance($data[$pointIndex], $data[$otherIndex]);
+        }
+        $avgDistance = $distance / count($cluster);
+        $minDistance = min($minDistance, $avgDistance);
       }
     }
 
-    return $minDist === PHP_FLOAT_MAX ? 0 : $minDist;
+    return $minDistance === PHP_FLOAT_MAX ? 0 : $minDistance;
   }
 }
