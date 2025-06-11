@@ -90,7 +90,7 @@
                                 Total Data: {{ count($rawRows) }}
                             </span>
                         </div>
-                        <button wire:click="goToDefineCluster" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:outline-none focus:border-blue-700 focus:ring focus:ring-blue-200 active:bg-blue-600 disabled:opacity-25 transition">
+                        <button wire:click="goToDefineCluster" class="inline-flex items-center px-4 py-2 bg-primary-600 dark:bg-primary-500 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 dark:hover:bg-primary-600 focus:outline-none focus:border-primary-700 dark:focus:border-primary-600 focus:ring focus:ring-primary-200 dark:focus:ring-primary-300 active:bg-primary-600 dark:active:bg-primary-700 disabled:opacity-25 transition">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
                             </svg>
