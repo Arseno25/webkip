@@ -125,13 +125,21 @@
             </div>
 
             <!-- Download Results -->
-            <div class="flex justify-end mt-6">
+            <div class="flex justify-end space-x-4 mt-6">
                 <x-filament::button
                     wire:click="downloadResults"
                     icon="heroicon-o-arrow-down-tray"
                     color="success"
                 >
                     Download Hasil (CSV)
+                </x-filament::button>
+
+                <x-filament::button
+                    wire:click="goToMap"
+                    icon="heroicon-o-map"
+                    color="primary"
+                >
+                    Lihat Peta
                 </x-filament::button>
             </div>
         @else

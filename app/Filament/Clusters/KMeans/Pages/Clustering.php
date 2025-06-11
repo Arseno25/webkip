@@ -196,4 +196,14 @@ class Clustering extends Page
             return null;
         }
     }
+
+    public function goToMap()
+    {
+        if (empty($this->clusterResults)) {
+            Session::flash('error', 'Tidak ada hasil clustering untuk ditampilkan pada peta.');
+            return;
+        }
+
+        return redirect('/admin/k-means/k-means-map');
+    }
 }

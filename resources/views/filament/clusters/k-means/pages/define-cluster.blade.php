@@ -139,8 +139,8 @@
                                     <li><span class="font-medium">K-Means++:</span> Metode cerdas yang memilih centroid awal dengan optimal</li>
                                     <li><span class="font-medium">Average:</span> Menggunakan rata-rata dan sebaran data untuk penentuan centroid</li>
                                     <li><span class="font-medium">Random:</span> Memilih centroid secara acak dari data yang ada</li>
-                                </ul>
-                            </div>
+            </ul>
+        </div>
                         </div>
                     </div>
                 </div>

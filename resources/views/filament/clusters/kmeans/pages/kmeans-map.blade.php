@@ -59,55 +59,73 @@
         </div>
     </div>
 
+    @push('styles')
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map {
+            min-height: 600px;
+            z-index: 0;
+        }
+        .leaflet-popup-content {
+            margin: 10px;
+        }
+        .leaflet-popup-content h3 {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .leaflet-popup-content p {
+            margin: 4px 0;
+        }
+    </style>
+    @endpush
+
     @push('scripts')
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.maps_api_key') }}&callback=initMap" async defer></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        function initMap() {
+        document.addEventListener('DOMContentLoaded', function() {
             const mapData = @json($this->getMapData());
 
-            // Set default center to Indonesia
-            const map = new google.maps.Map(document.getElementById('map'), {
-                zoom: 12,
-                center: mapData.length > 0
-                    ? { lat: mapData[0].lat, lng: mapData[0].lng }
-                    : { lat: -6.200000, lng: 106.816666 } // Jakarta coordinates as fallback
-            });
+            // Initialize map
+            const map = L.map('map', {
+                preferCanvas: true,
+                zoomControl: true
+            }).setView([-6.200000, 106.816666], 9); // Default to Jakarta
+
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
 
             // Add markers for each location
             mapData.forEach(location => {
-                const marker = new google.maps.Marker({
-                    position: { lat: location.lat, lng: location.lng },
-                    map: map,
-                    title: location.title,
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        fillColor: location.color,
-                        fillOpacity: 0.9,
-                        strokeWeight: 2,
-                        strokeColor: '#ffffff',
-                        scale: 10
-                    }
-                });
+                const marker = L.circleMarker([location.lat, location.lng], {
+                    radius: 8,
+                    fillColor: location.color,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(map);
 
-                // Create info window content
-                let infoContent = '<div class="p-3">';
-                infoContent += `<h3 class="font-bold mb-2">${location.info.Sekolah}</h3>`;
+                // Create popup content
+                let popupContent = '<div>';
+                popupContent += `<h3>${location.info.Sekolah}</h3>`;
                 for (const [key, value] of Object.entries(location.info)) {
                     if (key !== 'Sekolah') {
-                        infoContent += `<p><strong>${key}:</strong> ${value}</p>`;
+                        popupContent += `<p><strong>${key}:</strong> ${value}</p>`;
                     }
                 }
-                infoContent += '</div>';
+                popupContent += '</div>';
 
-                const infoWindow = new google.maps.InfoWindow({
-                    content: infoContent
-                });
-
-                marker.addListener('click', () => {
-                    infoWindow.open(map, marker);
-                });
+                marker.bindPopup(popupContent);
             });
-        }
+
+            // Fit bounds if there are markers
+            if (mapData.length > 0) {
+                const bounds = mapData.map(loc => [loc.lat, loc.lng]);
+                map.fitBounds(bounds);
+            }
+        });
     </script>
     @endpush
 </x-filament-panels::page>

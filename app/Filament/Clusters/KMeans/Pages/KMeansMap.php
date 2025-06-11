@@ -5,6 +5,8 @@ namespace App\Filament\Clusters\KMeans\Pages;
 use App\Filament\Clusters\KMeans;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Log;
+use App\Models\School;
 
 class KMeansMap extends Page
 {
@@ -38,6 +40,7 @@ class KMeansMap extends Page
     {
         // Cek apakah hasil clustering tersedia
         $results = Session::get('kmeans_results');
+
         if (!$results || empty($results['clusters'])) {
             Session::flash('error', 'Data clustering tidak tersedia. Silakan lakukan clustering terlebih dahulu.');
             return redirect('/admin/k-means/clustering');
@@ -45,6 +48,14 @@ class KMeansMap extends Page
 
         // Ambil data cluster
         $this->clusterResults = $results['clusters'];
+
+        // Debug log
+        Log::info('Clustering Results:', [
+            'has_results' => !empty($results),
+            'cluster_count' => count($this->clusterResults),
+            'first_cluster' => !empty($this->clusterResults) ? count($this->clusterResults[0]) : 0,
+            'sample_data' => !empty($this->clusterResults) ? $this->clusterResults[0][0] : null
+        ]);
     }
 
     public function getMapData()
@@ -52,11 +63,36 @@ class KMeansMap extends Page
         $mapData = [];
 
         foreach ($this->clusterResults as $clusterIndex => $cluster) {
+            Log::info("Processing cluster {$clusterIndex}:", [
+                'cluster_size' => count($cluster),
+                'sample_data' => !empty($cluster) ? $cluster[0] : null
+            ]);
+
             foreach ($cluster as $data) {
-                if (isset($data['latitude']) && isset($data['longitude'])) {
+                // Debug log untuk setiap data
+                Log::info("Processing data:", [
+                    'school_id' => $data['school_id'] ?? 'not set',
+                    'school_name' => $data['school_name'] ?? 'not set'
+                ]);
+
+                // Ambil data sekolah berdasarkan school_id
+                $school = School::find($data['school_id']);
+
+                if ($school) {
+                    Log::info("School found:", [
+                        'id' => $school->id,
+                        'name' => $school->name,
+                        'latitude' => $school->latitude,
+                        'longitude' => $school->longitude
+                    ]);
+                } else {
+                    Log::info("School not found for ID: " . ($data['school_id'] ?? 'not set'));
+                }
+
+                if ($school && $school->latitude && $school->longitude) {
                     $mapData[] = [
-                        'lat' => (float) $data['latitude'],
-                        'lng' => (float) $data['longitude'],
+                        'lat' => (float) $school->latitude,
+                        'lng' => (float) $school->longitude,
                         'title' => $data['school_name'],
                         'cluster' => $clusterIndex + 1,
                         'color' => $this->clusterColors[$clusterIndex + 1],
@@ -71,6 +107,12 @@ class KMeansMap extends Page
                 }
             }
         }
+
+        // Debug log
+        Log::info('Map Data:', [
+            'total_points' => count($mapData),
+            'first_point' => !empty($mapData) ? $mapData[0] : null
+        ]);
 
         return $mapData;
     }
